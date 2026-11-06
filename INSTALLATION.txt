@@ -1,0 +1,40 @@
+CHANTS D'OISEAUX — Installation sur le Xiaomi 15T Pro
+======================================================
+
+Pourquoi un hébergement ? Le mode hors ligne d'une web-app ne fonctionne que si
+elle est servie en HTTPS. GitHub Pages est gratuit et suffit largement.
+
+A. METTRE L'APPLI EN LIGNE (depuis le PC Windows, une seule fois, ~10 min)
+1. Créer un compte gratuit sur https://github.com (si pas déjà fait).
+2. Bouton « + » en haut à droite > « New repository ».
+   Nom : oiseaux — cocher « Public » — « Create repository ».
+3. Sur la page du dépôt : lien « uploading an existing file ».
+4. Dézipper oiseaux.zip sur le PC, puis glisser TOUT le contenu du dossier
+   (index.html, app.js, birds.js, style.css, sw.js, manifest.webmanifest
+   ET le dossier icons) dans la page. Bouton « Commit changes ».
+5. Onglet « Settings » > menu « Pages » > Source : « Deploy from a branch »,
+   Branch : « main », dossier « / (root) » > « Save ».
+6. Attendre 1 à 2 minutes. L'adresse s'affiche en haut de la page Pages :
+   https://VOTRE-PSEUDO.github.io/oiseaux/
+
+B. INSTALLER SUR LE TÉLÉPHONE
+1. En Wi-Fi, ouvrir cette adresse dans Chrome.
+2. Toucher « Préparer l'appli » : 30 photos et 30 chants sont téléchargés
+   (environ 30 à 60 Mo, 1 à 3 minutes). Attendre « Terminé ».
+3. Menu Chrome (⋮) > « Ajouter à l'écran d'accueil » > « Installer ».
+4. Lancer l'appli depuis l'icône : elle fonctionne désormais sans réseau.
+
+UTILISATION
+- Le fil défile tout seul (vitesse réglable dans le menu ⋯).
+- Glisser vers le haut ou le bas : défilement manuel.
+- Toucher une photo (sans glisser) : arrêt, chant de 10 secondes et fiche
+  de l'oiseau ; le chant va au bout même si on relève le doigt, puis le
+  défilement reprend.
+- Menu ⋯ > Crédits : auteurs et licences de chaque photo et chant
+  (obligatoire pour respecter les licences Creative Commons).
+- Si quelques chants manquent : menu ⋯ > Retélécharger > Annuler
+  (complète seulement ce qui manque), en Wi-Fi.
+
+CONSEIL XIAOMI (HyperOS) : si l'appli est purgée après plusieurs semaines,
+Paramètres > Applications > Chrome > Économiseur de batterie > « Aucune
+restriction », puis relancer la préparation.
