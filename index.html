@@ -16,10 +16,12 @@
     <div class="home-inner">
       <img src="icons/icon-192.png" alt="" class="home-logo">
       <h1>Chants d'oiseaux</h1>
+      <p class="version-badge">Version <span class="app-version"></span></p>
       <p class="home-sub">30 oiseaux du monde entier.<br>Regardez, écoutez, devinez.</p>
       <button id="btn-start" class="btn primary">Défilement des oiseaux</button>
       <button id="btn-quiz" class="btn quiz">🎧 Quiz : quel oiseau chante ?</button>
       <button id="btn-prepare" class="btn primary" hidden>Préparer l'appli</button>
+      <button id="btn-home-settings" class="btn">⚙️ Réglages</button>
       <p id="home-note" class="home-note"></p>
       <p class="author">Créé par David LGD, de Betton</p>
     </div>
@@ -102,20 +104,21 @@
           <option value="12">12 s</option>
         </select>
       </label>
-      <div id="row-amb" hidden>
+      <div id="row-amb">
         <label class="row">Ambiance sonore
           <input type="checkbox" id="chk-amb" checked>
         </label>
         <label class="row">Niveau de l'ambiance
           <span class="vol"><input type="range" id="rng-amb" min="1" max="40" step="1" value="6"><b id="val-amb">6 %</b></span>
         </label>
+        <p id="amb-note" class="small"></p>
       </div>
       <button id="btn-menu-quiz" class="btn quiz">🎧 Jouer au quiz</button>
       <button id="btn-credits" class="btn">Crédits photos et chants</button>
       <button id="btn-export" class="btn">Exporter les photos (pour recadrage)</button>
       <button id="btn-update" class="btn">Retélécharger les médias</button>
       <button id="btn-close-menu" class="btn primary">Fermer</button>
-      <p class="author">Chants d'oiseaux · version 6<br>Créé par David LGD, de Betton</p>
+      <p class="author">Chants d'oiseaux · version <span class="app-version"></span><br>Créé par David LGD, de Betton</p>
     </div>
   </section>
 

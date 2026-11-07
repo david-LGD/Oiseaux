@@ -15,7 +15,9 @@ const MAX_AUDIO_BYTES = 8e6;
 // enregistrements à écarter : prononciations du nom, voix humaines, extraits radio…
 const BAD_AUDIO = /^file:\s*(en|fr|de|nl|es|it|pt|sv|pl|ru)(-[a-z]{2})?-|ll-q\d+|pronunciation|prononciation|aussprache|spoken|voice|narrat|wikipedia|podcast|radio|interview/i;
 
+const APP_VERSION = "8";      // à augmenter à chaque mise à jour (avec sw.js)
 const $ = (id) => document.getElementById(id);
+document.querySelectorAll(".app-version").forEach((e) => (e.textContent = APP_VERSION));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ---------- Métadonnées (sources, crédits) ---------- */
@@ -483,19 +485,35 @@ document.addEventListener("visibilitychange", () => {
 /* ---------- Menu, réglages, crédits ---------- */
 $("sel-speed").value = String(speed);
 $("sel-speed").onchange = (e) => { speed = +e.target.value; localStorage.setItem(SPEED_KEY, speed); };
-$("btn-menu").onclick = () => {
-  if (playing) return; menuOpen = true; clearTimeout(autoTimer);
-  $("row-amb").hidden = !isLocal("_ambiance", "file");
+function ambNote() {
+  $("amb-note").textContent = isLocal("_ambiance", "file")
+    ? "Réglez le niveau en écoutant : l'ambiance joue pendant que ce menu est ouvert."
+    : "Aucun fichier ambiance.mp3 trouvé. Déposez-le à la racine du dépôt GitHub, puis rouvrez l'appli avec du réseau.";
+}
+let menuFromHome = false;
+async function openMenu(fromHome) {
+  if (playing) return;
+  menuFromHome = fromHome; menuOpen = true; clearTimeout(autoTimer);
   $("chk-amb").checked = !(typeof Sfx !== "undefined" && Sfx.off);
   if (typeof Sfx !== "undefined") { const v = Math.round(Sfx.vol * 100); $("rng-amb").value = v; $("val-amb").textContent = v + " %"; }
+  ambNote();
   $("menu").hidden = false;
-};
+  if (fromHome) {                       // depuis l'accueil : on récupère le fichier si besoin et on fait écouter le niveau
+    await syncLocal(); ambNote();
+    if (typeof Sfx !== "undefined" && !$("menu").hidden) { Sfx.init(); Sfx.startAmbience(); }
+  }
+}
+$("btn-menu").onclick = () => openMenu(false);
+$("btn-home-settings").onclick = () => openMenu(true);
 $("chk-amb").onchange = (e) => { if (typeof Sfx !== "undefined") Sfx.setOff(!e.target.checked); };
 $("rng-amb").oninput = (e) => {
   const v = +e.target.value; $("val-amb").textContent = v + " %";
   if (typeof Sfx !== "undefined") Sfx.setVol(v / 100);
 };
-$("btn-close-menu").onclick = () => { $("menu").hidden = true; menuOpen = false; scheduleAuto(); };
+$("btn-close-menu").onclick = () => {
+  $("menu").hidden = true; menuOpen = false;
+  if (menuFromHome) { if (typeof Sfx !== "undefined") Sfx.stopAmbience(0.6); } else scheduleAuto();
+};
 $("btn-credits").onclick = () => {
   const esc = (s) => String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const line = (label, c) => c
@@ -532,7 +550,10 @@ $("btn-export").onclick = async () => {
   }
   alert(`${n} photos envoyées vers Téléchargements.`);
 };
-$("btn-close-credits").onclick = () => { $("credits").hidden = true; menuOpen = false; scheduleAuto(); };
+$("btn-close-credits").onclick = () => {
+  $("credits").hidden = true; menuOpen = false;
+  if (menuFromHome) { if (typeof Sfx !== "undefined") Sfx.stopAmbience(0.6); } else scheduleAuto();
+};
 $("btn-update").onclick = async () => {
   if (!navigator.onLine) { alert("Connexion internet nécessaire pour retélécharger."); return; }
   const full = confirm("OK : tout retélécharger depuis zéro.\nAnnuler : compléter seulement ce qui manque.");
