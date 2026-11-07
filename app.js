@@ -487,9 +487,14 @@ $("btn-menu").onclick = () => {
   if (playing) return; menuOpen = true; clearTimeout(autoTimer);
   $("row-amb").hidden = !isLocal("_ambiance", "file");
   $("chk-amb").checked = !(typeof Sfx !== "undefined" && Sfx.off);
+  if (typeof Sfx !== "undefined") { const v = Math.round(Sfx.vol * 100); $("rng-amb").value = v; $("val-amb").textContent = v + " %"; }
   $("menu").hidden = false;
 };
 $("chk-amb").onchange = (e) => { if (typeof Sfx !== "undefined") Sfx.setOff(!e.target.checked); };
+$("rng-amb").oninput = (e) => {
+  const v = +e.target.value; $("val-amb").textContent = v + " %";
+  if (typeof Sfx !== "undefined") Sfx.setVol(v / 100);
+};
 $("btn-close-menu").onclick = () => { $("menu").hidden = true; menuOpen = false; scheduleAuto(); };
 $("btn-credits").onclick = () => {
   const esc = (s) => String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -583,5 +588,11 @@ async function otherSong(id) {
   $("btn-credits").onclick();
 }
 
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator) {
+  // dès qu'une nouvelle version est installée, on recharge une fois pour l'appliquer tout de suite
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 refreshHome();

@@ -21,6 +21,7 @@
       <button id="btn-quiz" class="btn quiz">🎧 Quiz : quel oiseau chante ?</button>
       <button id="btn-prepare" class="btn primary" hidden>Préparer l'appli</button>
       <p id="home-note" class="home-note"></p>
+      <p class="author">Créé par David LGD, de Betton</p>
     </div>
   </section>
 
@@ -101,21 +102,27 @@
           <option value="12">12 s</option>
         </select>
       </label>
-      <label class="row" id="row-amb" hidden>Ambiance sonore (ruisseau…)
-        <input type="checkbox" id="chk-amb" checked>
-      </label>
+      <div id="row-amb" hidden>
+        <label class="row">Ambiance sonore
+          <input type="checkbox" id="chk-amb" checked>
+        </label>
+        <label class="row">Niveau de l'ambiance
+          <span class="vol"><input type="range" id="rng-amb" min="1" max="40" step="1" value="6"><b id="val-amb">6 %</b></span>
+        </label>
+      </div>
       <button id="btn-menu-quiz" class="btn quiz">🎧 Jouer au quiz</button>
       <button id="btn-credits" class="btn">Crédits photos et chants</button>
       <button id="btn-export" class="btn">Exporter les photos (pour recadrage)</button>
       <button id="btn-update" class="btn">Retélécharger les médias</button>
       <button id="btn-close-menu" class="btn primary">Fermer</button>
+      <p class="author">Chants d'oiseaux · version 6<br>Créé par David LGD, de Betton</p>
     </div>
   </section>
 
   <section id="credits" class="sheet" hidden>
     <div class="sheet-inner scroll">
       <h2>Crédits</h2>
-      <p class="small">Photos et enregistrements issus de Wikimedia Commons, sous licences libres. Usage personnel et pédagogique.</p>
+      <p class="small">Application créée par David LGD, de Betton.<br>Photos et enregistrements issus de Wikimedia Commons, sous licences libres. Usage personnel et pédagogique.</p>
       <div id="credits-list"></div>
       <button id="btn-close-credits" class="btn primary">Fermer</button>
     </div>

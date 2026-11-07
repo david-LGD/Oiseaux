@@ -135,3 +135,8 @@ h1 { font-size: 2rem; margin-bottom: 10px; }
 #quiz-feedback small { font-weight: 400; opacity: .7; font-size: .8rem; }
 .row input[type=checkbox] { width: 24px; height: 24px; accent-color: #e9b949; }
 .mini { margin-top: 6px; padding: 6px 10px; border-radius: 10px; border: 1px solid #ffffff33; background: #ffffff10; color: inherit; font-size: .8rem; }
+
+.vol { display: flex; align-items: center; gap: 10px; }
+.vol input { width: 140px; accent-color: #e9b949; }
+.vol b { min-width: 42px; text-align: right; font-weight: 600; }
+.author { margin-top: 14px; font-size: .8rem; opacity: .6; text-align: center; line-height: 1.4; }

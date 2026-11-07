@@ -5,7 +5,7 @@ const QUIZ_KEY = "oiseaux-quiz-v1";
 const AMB_KEY = "oiseaux-ambiance-off";
 const QUIZ_LEN = 10;
 const SOLUTION_MS = 5000;      // solution visible + chant, puis groupe suivant (ou toucher)
-const AMB_VOL = 0.06;          // ambiance très basse
+const AMB_VOL_KEY = "oiseaux-amb-vol";
 
 /* ---------- Progression ---------- */
 function loadQuiz() { try { return JSON.parse(localStorage.getItem(QUIZ_KEY)) || { sessions: [], birds: {} }; } catch { return { sessions: [], birds: {} }; } }
@@ -15,6 +15,11 @@ let progress = loadQuiz();
 /* ---------- Sons (Web Audio) ---------- */
 const Sfx = {
   ctx: null, amb: null, off: localStorage.getItem(AMB_KEY) === "1",
+  vol: +(localStorage.getItem(AMB_VOL_KEY) || 0.06),        // niveau relatif aux chants (6 % par défaut)
+  setVol(v) {
+    this.vol = v; localStorage.setItem(AMB_VOL_KEY, String(v));
+    if (this.amb && !this.amb.fading) this.amb.a.volume = v;
+  },
   init() {
     if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (this.ctx.state === "suspended") this.ctx.resume();
@@ -43,7 +48,7 @@ const Sfx = {
     const a = new Audio(url); a.loop = true; a.volume = 0;
     this.amb = { a, url };
     try { await a.play(); } catch { return; }
-    for (let k = 1; k <= 20 && this.amb && this.amb.a === a; k++) { a.volume = AMB_VOL * k / 20; await sleep(100); }
+    for (let k = 1; k <= 20 && this.amb && this.amb.a === a; k++) { a.volume = this.vol * k / 20; await sleep(100); }
   },
   setOff(off) {
     this.off = off; localStorage.setItem(AMB_KEY, off ? "1" : "0");
@@ -51,7 +56,7 @@ const Sfx = {
   },
   async stopAmbience(fade = 1) {
     if (!this.amb) return;
-    const { a, url } = this.amb; this.amb = null;
+    const { a, url } = this.amb; this.amb.fading = true; this.amb = null;
     const v0 = a.volume, steps = Math.max(1, Math.round(fade * 10));
     for (let k = 1; k <= steps; k++) { a.volume = Math.max(0, v0 * (1 - k / steps)); await sleep(100); }
     a.pause(); URL.revokeObjectURL(url);
@@ -193,7 +198,8 @@ function answer(id) {
     if (qs.i < qs.questions.length) { Sfx.chime(); renderQuestion(); }
     else finishQuiz();
   }
-  setTimeout(() => quiz.addEventListener("click", onTap), 50);   // pas le toucher de la réponse
+  // la solution reste au moins 1,5 s à l'écran (évite un double toucher accidentel), puis un toucher passe à la suite
+  setTimeout(() => { if (qs && qs.token === token) quiz.addEventListener("click", onTap); }, 1500);
 }
 
 function finishQuiz() {
