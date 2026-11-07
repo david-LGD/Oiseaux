@@ -1,6 +1,6 @@
 // Service worker : garde le code de l'appli pour un usage sans réseau.
 // (Les photos et chants sont stockés séparément par l'appli, cache "oiseaux-media-v1".)
-const SHELL = "oiseaux-app-v8";
+const SHELL = "oiseaux-app-v9";
 const FILES = ["./", "index.html", "style.css", "app.js", "quiz.js", "birds.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
 

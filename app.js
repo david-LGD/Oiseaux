@@ -15,7 +15,7 @@ const MAX_AUDIO_BYTES = 8e6;
 // enregistrements à écarter : prononciations du nom, voix humaines, extraits radio…
 const BAD_AUDIO = /^file:\s*(en|fr|de|nl|es|it|pt|sv|pl|ru)(-[a-z]{2})?-|ll-q\d+|pronunciation|prononciation|aussprache|spoken|voice|narrat|wikipedia|podcast|radio|interview/i;
 
-const APP_VERSION = "8";      // à augmenter à chaque mise à jour (avec sw.js)
+const APP_VERSION = "9";      // à augmenter à chaque mise à jour (avec sw.js)
 const $ = (id) => document.getElementById(id);
 document.querySelectorAll(".app-version").forEach((e) => (e.textContent = APP_VERSION));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -287,7 +287,7 @@ async function prepare() {
 function show(name) {
   ["home", "download", "quiz", "quiz-end"].forEach((s) => ($(s).hidden = s !== name));
   const feedOn = name === "feed";
-  $("feed").hidden = !feedOn; $("btn-menu").hidden = !feedOn;
+  $("feed").hidden = !feedOn; $("btn-menu").hidden = !feedOn; $("btn-feed-home").hidden = !feedOn;
   if (!feedOn) { clearTimeout(autoTimer); $("hint").hidden = true; }
   if (typeof Sfx !== "undefined" && !feedOn && name !== "quiz") Sfx.stopAmbience(0.8);
 }
@@ -505,6 +505,11 @@ async function openMenu(fromHome) {
 }
 $("btn-menu").onclick = () => openMenu(false);
 $("btn-home-settings").onclick = () => openMenu(true);
+$("btn-feed-home").onclick = () => {          // retour à l'accueil depuis le défilement
+  if (skipPlay) skipPlay();
+  clearTimeout(autoTimer);
+  refreshHome();
+};
 $("chk-amb").onchange = (e) => { if (typeof Sfx !== "undefined") Sfx.setOff(!e.target.checked); };
 $("rng-amb").oninput = (e) => {
   const v = +e.target.value; $("val-amb").textContent = v + " %";

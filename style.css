@@ -43,7 +43,7 @@ h1 { font-size: 2rem; margin-bottom: 10px; }
   background: linear-gradient(transparent, #000c); pointer-events: none; }
 .slide .label b { display: block; font-size: 1.4rem; }
 .slide .label i { opacity: .75; font-size: .95rem; }
-.slide .zone { position: absolute; top: calc(18px + env(safe-area-inset-top)); left: 16px; padding: 5px 11px; border-radius: 20px;
+.slide .zone { position: absolute; top: calc(22px + env(safe-area-inset-top)); left: 66px; padding: 5px 11px; border-radius: 20px;
   background: #0007; font-size: .8rem; pointer-events: none; }
 .slide.playing .label { opacity: 0; }
 
@@ -143,3 +143,6 @@ h1 { font-size: 2rem; margin-bottom: 10px; }
 
 .version-badge { display: inline-block; margin: 0 0 12px; padding: 5px 14px; border-radius: 20px;
   background: #e9b94922; border: 1px solid #e9b94988; color: #e9b949; font-weight: 700; font-size: .95rem; }
+
+.round.left { right: auto; left: 12px; font-size: 1.2rem; }
+#btn-menu { font-size: 1.25rem; }
