@@ -123,3 +123,11 @@ h1 { font-size: 2rem; margin-bottom: 10px; }
 #end-total { margin-top: 6px; }
 .missed { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .mb { font-size: .8rem; } .mb img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; display: block; margin-bottom: 3px; }
+.tile img { position: absolute; inset: 0; }
+.tile img.bg { object-fit: cover; filter: blur(18px) brightness(.55) saturate(1.2); transform: scale(1.2); }
+.tile img.fg { object-fit: contain; }
+.tile img.cover { object-fit: cover; }
+.tile .badge { position: absolute; top: 8px; right: 8px; padding: 4px 11px; border-radius: 14px; font-weight: 800; font-size: .9rem; display: none; }
+.tile.good .badge { display: block; background: #8fd694; color: #0b1a12; }
+.tile.bad .badge { display: block; background: #ff8a80; color: #2a0b08; }
+.tile.bad { border-color: #ff8a80; border-width: 3px; }

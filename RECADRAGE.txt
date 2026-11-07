@@ -1,0 +1,23 @@
+VOS PHOTOS RECADRÉES ET VOTRE AMBIANCE SONORE
+=============================================
+1. Dans l'appli : Défilement > menu ⋯ > « Exporter les photos (pour recadrage) ».
+   Les 30 photos arrivent dans Téléchargements, nommées par oiseau (ex. merle-noir.jpg).
+
+2. Pour chaque oiseau, créez 2 versions en JPEG :
+   - <nom>-portrait.jpg : format 9:16, ex. 1080 x 1920 (pour le défilement)
+     Oiseau dans la moitié haute : le bas de l'écran est couvert par la fiche.
+   - <nom>-paysage.jpg : format 16:9, ex. 1600 x 900 (pour le quiz)
+     Oiseau bien centré, un peu de marge autour.
+   Gardez exactement le nom exporté + « -portrait » ou « -paysage ».
+   Exemple : merle-noir-portrait.jpg et merle-noir-paysage.jpg
+   Vous pouvez n'en faire qu'une partie : les autres gardent la photo d'origine.
+
+3. Sur GitHub (plus simple depuis le PC) :
+   Add file > Upload files > glissez le DOSSIER « photos » contenant vos images.
+   Ils doivent se trouver dans : photos/merle-noir-portrait.jpg, etc.
+
+4. Ambiance sonore : un fichier MP3 nommé exactement  ambiance.mp3
+   (1 à 3 minutes, moins de 5 Mo), déposé à la racine du dépôt.
+
+5. Ouvrez l'appli une fois avec du réseau : elle récupère vos fichiers et les garde
+   pour le hors ligne. Pour remplacer une image plus tard, redéposez-la avec le même nom.

@@ -22,6 +22,49 @@ function loadMeta() { try { return JSON.parse(localStorage.getItem(META_KEY)) ||
 function saveMeta() { try { localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch {} }
 const bm = (id) => (meta.birds[id] = meta.birds[id] || {});
 const mediaKey = (id, kind) => `media/${id}/${kind}`;
+const localKey = (id, kind) => `local/${id}/${kind}`;
+
+/* ---------- Liste active : 30 oiseaux avec chant (réserves françaises si besoin) ---------- */
+const ALL = BIRDS.concat(typeof RESERVES !== "undefined" ? RESERVES : []);
+const TARGET = BIRDS.length;
+const byId = (id) => ALL.find((b) => b.id === id);
+function activeBirds() {
+  if (Array.isArray(meta.active) && meta.active.length) return meta.active.map(byId).filter(Boolean);
+  return BIRDS.filter((b) => isReady(b.id));
+}
+const hasSong = (id) => !!(meta.birds[id] && meta.birds[id].audio);
+const isLocal = (id, kind) => !!(meta.local && meta.local[id] && meta.local[id][kind]);
+
+/* ---------- Vos fichiers déposés sur GitHub : photos/<id>-portrait.jpg, photos/<id>-paysage.jpg, ambiance.mp3 ---------- */
+async function syncLocal() {
+  if (!navigator.onLine) return;
+  meta.local = meta.local || {};
+  const cache = await caches.open(MEDIA_CACHE);
+  const jobs = [];
+  activeBirds().forEach((b) => ["portrait", "paysage"].forEach((k) => jobs.push([`photos/${b.id}-${k}.jpg`, b.id, k])));
+  jobs.push(["ambiance.mp3", "_ambiance", "file"]);
+  let i = 0;
+  const worker = async () => {
+    while (i < jobs.length) {
+      const [url, id, kind] = jobs[i++];
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 10000);
+      try {
+        const r = await fetch(url, { cache: "no-cache", signal: ctl.signal });
+        const type = r.headers.get("content-type") || "";
+        meta.local[id] = meta.local[id] || {};
+        if (r.ok && /image|audio|mpeg|octet/.test(type)) {
+          await cache.put(localKey(id, kind), new Response(await r.blob(), { headers: { "Content-Type": type } }));
+          meta.local[id][kind] = true;
+        } else if (r.status === 404) {
+          await cache.delete(localKey(id, kind));
+          meta.local[id][kind] = false;
+        }
+      } catch {} finally { clearTimeout(t); }
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+  saveMeta();
+}
 
 /* ---------- API Wikimedia ---------- */
 async function api(base, params) {
@@ -157,8 +200,26 @@ async function fetchBird(b) {
 function isReady(id) { const m = meta.birds[id]; return !!(m && m.photo); }
 function counts() {
   let photos = 0, songs = 0;
-  BIRDS.forEach((b) => { const m = meta.birds[b.id]; if (m && m.photo) photos++; if (m && m.audio) songs++; });
+  activeBirds().forEach((b) => { const m = meta.birds[b.id]; if (m && m.photo) photos++; if (m && m.audio) songs++; });
   return { photos, songs };
+}
+
+async function chooseActive(rowFor, mark) {
+  const ok = (b) => isReady(b.id) && hasSong(b.id);
+  const active = BIRDS.filter(ok);
+  for (const r of RESERVES) {
+    if (active.length >= TARGET) break;
+    if (!ok(r)) {
+      rowFor(r).textContent = "recherche…";
+      try { await fetchBird(r); } catch (e) { console.warn(r.id, e); }
+    }
+    mark(r);
+    if (ok(r)) active.push(r);
+  }
+  // s'il manque encore des oiseaux, on garde ceux qui ont au moins une photo
+  BIRDS.forEach((b) => { if (active.length < TARGET && isReady(b.id) && !active.includes(b)) active.push(b); });
+  meta.active = active.map((b) => b.id);
+  saveMeta();
 }
 
 async function prepare() {
@@ -167,19 +228,25 @@ async function prepare() {
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   const list = $("dl-list"); list.innerHTML = "";
   const rows = {};
-  BIRDS.forEach((b) => {
-    const li = document.createElement("li");
-    li.innerHTML = `<span>${b.fr}</span><span class="st">…</span>`;
-    list.appendChild(li); rows[b.id] = li.querySelector(".st");
-  });
+  const rowFor = (b, label) => {
+    if (!rows[b.id]) {
+      const li = document.createElement("li");
+      li.innerHTML = `<span>${label || b.fr}</span><span class="st">…</span>`;
+      list.appendChild(li); rows[b.id] = li.querySelector(".st");
+      li.scrollIntoView({ block: "nearest" });
+    }
+    return rows[b.id];
+  };
+  BIRDS.forEach((b) => rowFor(b));
   const todo = BIRDS.filter((b) => !(meta.birds[b.id] && meta.birds[b.id].photo && meta.birds[b.id].audio));
   let done = BIRDS.length - todo.length;
   const mark = (b) => {
     const m = meta.birds[b.id] || {};
-    const st = rows[b.id];
-    if (m.photo && m.audio) { st.textContent = "✓"; st.className = "st ok"; }
-    else if (m.photo) { st.textContent = "photo seule"; st.className = "st warn"; }
-    else { st.textContent = "échec"; st.className = "st err"; }
+    const st = rowFor(b);
+    const reserve = !BIRDS.includes(b);
+    if (m.photo && m.audio) { st.textContent = reserve ? "✓ ajouté" : "✓"; st.className = "st ok"; }
+    else if (reserve) { st.textContent = "non trouvé"; st.className = "st err"; }
+    else { st.textContent = "sans chant → remplacé"; st.className = "st warn"; }
   };
   BIRDS.forEach((b) => { if (!todo.includes(b)) mark(b); });
   const update = () => {
@@ -198,10 +265,15 @@ async function prepare() {
     }
   };
   await Promise.all([worker(), worker(), worker()]);
+  if (BIRDS.some((b) => !(isReady(b.id) && hasSong(b.id)))) {
+    $("dl-status").textContent = "Remplacement des oiseaux sans chant par des oiseaux de France…";
+    const sep = document.createElement("li"); sep.innerHTML = "<span><b>Oiseaux de France ajoutés</b></span>"; list.appendChild(sep);
+  }
+  await chooseActive(rowFor, mark);
   meta.prepared = true; saveMeta();
   const c = counts();
-  $("dl-status").textContent = `Terminé : ${c.photos} photos et ${c.songs} chants disponibles hors ligne.`;
-  $("btn-retry").hidden = c.photos === BIRDS.length && c.songs === BIRDS.length;
+  $("dl-status").textContent = `Terminé : ${c.photos} oiseaux, dont ${c.songs} avec leur chant, disponibles hors ligne.`;
+  $("btn-retry").hidden = c.photos === TARGET && c.songs === TARGET;
   $("btn-dl-start").hidden = c.photos === 0;
 }
 
@@ -217,19 +289,23 @@ function refreshHome() {
   const ready = meta.prepared && c.photos > 0;
   $("btn-start").hidden = !ready;
   $("btn-quiz").hidden = !ready || c.songs < 3;
-  $("btn-prepare").hidden = ready;
+  const needsUpgrade = ready && !Array.isArray(meta.active) && c.songs < TARGET;
+  $("btn-prepare").hidden = ready && !needsUpgrade;
+  $("btn-prepare").textContent = needsUpgrade ? "Remplacer les oiseaux sans chant" : "Préparer l'appli";
   let note = "";
   if (!ready) note = navigator.onLine ? "Première utilisation : connexion internet nécessaire une seule fois (environ 30 à 60 Mo)."
                                       : "Connectez-vous à internet pour la première préparation.";
-  else if (c.photos < BIRDS.length || c.songs < BIRDS.length)
-    note = `${c.photos} photos et ${c.songs} chants disponibles. Menu ⋯ > Retélécharger pour compléter.`;
+  else if (needsUpgrade) note = `${TARGET - c.songs} oiseaux n'ont pas de chant : touchez le bouton ci-dessus (connexion requise) pour les remplacer par des oiseaux de France.`;
+  else if (c.photos < TARGET || c.songs < TARGET)
+    note = `${c.photos} oiseaux, dont ${c.songs} avec chant. Menu ⋯ > Retélécharger pour compléter.`;
   $("home-note").textContent = note;
   show("home");
 }
 
 /* ---------- Fil d'images ---------- */
 const feed = $("feed");
-let photoUrls = {};          // id -> objectURL
+let photoUrls = {};          // id -> objectURL (photo Wikimedia)
+let portraitUrls = {}, paysageUrls = {};   // vos recadrages
 let pool = [];               // oiseaux disponibles
 let speed = +(localStorage.getItem(SPEED_KEY) || 6);
 let autoTimer = null, playing = false, menuOpen = false, wakeLock = null, hintTimer = null;
@@ -248,23 +324,32 @@ function appendRound() {
     s.className = "slide"; s.dataset.id = b.id;
     s.innerHTML = `<img class="bg" alt="" draggable="false" decoding="async"><img class="fg" alt="" draggable="false" decoding="async">
       <span class="zone">${b.zone}</span><div class="label"><b>${b.fr}</b><i>${b.latin}</i></div>`;
-    s.querySelectorAll("img").forEach((im) => (im.src = photoUrls[b.id]));
+    s.querySelectorAll("img").forEach((im) => (im.src = portraitUrls[b.id] || photoUrls[b.id]));
     feed.appendChild(s);
   }
 }
 
 async function ensurePhotos() {
   const cache = await caches.open(MEDIA_CACHE);
-  for (const b of BIRDS) {
-    if (!isReady(b.id) || photoUrls[b.id]) continue;
-    const r = await cache.match(mediaKey(b.id, "photo"));
-    if (r) photoUrls[b.id] = URL.createObjectURL(await r.blob());
+  [portraitUrls, paysageUrls].forEach((m) => Object.values(m).forEach((u) => URL.revokeObjectURL(u)));
+  portraitUrls = {}; paysageUrls = {};
+  for (const b of activeBirds()) {
+    if (isReady(b.id) && !photoUrls[b.id]) {
+      const r = await cache.match(mediaKey(b.id, "photo"));
+      if (r) photoUrls[b.id] = URL.createObjectURL(await r.blob());
+    }
+    for (const [kind, store] of [["portrait", portraitUrls], ["paysage", paysageUrls]]) {
+      if (!isLocal(b.id, kind)) continue;
+      const r = await cache.match(localKey(b.id, kind));
+      if (r) store[b.id] = URL.createObjectURL(await r.blob());
+    }
   }
 }
 
 async function startFeed() {
+  await syncLocal();
   await ensurePhotos();
-  pool = BIRDS.filter((b) => photoUrls[b.id]);
+  pool = activeBirds().filter((b) => photoUrls[b.id] || portraitUrls[b.id]);
   if (!pool.length) { meta.prepared = false; saveMeta(); refreshHome(); return; }
   feed.innerHTML = ""; appendRound(); appendRound();
   show("feed"); feed.scrollTop = 0;
@@ -330,7 +415,7 @@ async function trigger() {
   feed.scrollTo({ top: idx * slideH(), behavior: "smooth" });
   $("hint").hidden = true;
   if (navigator.vibrate) navigator.vibrate(15);
-  const b = BIRDS.find((x) => x.id === slide.dataset.id);
+  const b = byId(slide.dataset.id);
   slide.classList.add("playing");
 
   // fiche
@@ -392,11 +477,32 @@ $("btn-credits").onclick = () => {
   const line = (label, c) => c
     ? `${label} : ${esc(c.artist)} — ${esc(c.license)}${c.page ? `<br><a href="${esc(c.page)}" target="_blank" rel="noopener">${esc(c.page)}</a>` : ""}`
     : `${label} : non disponible`;
-  $("credits-list").innerHTML = BIRDS.map((b) => {
+  $("credits-list").innerHTML = activeBirds().map((b) => {
     const m = meta.birds[b.id] || {};
-    return `<div class="credit"><b>${esc(b.fr)}</b> <i>(${esc(b.latin)})</i><br>${line("Photo", m.photo)}<br>${line("Chant", m.audio)}</div>`;
+    const crop = isLocal(b.id, "portrait") || isLocal(b.id, "paysage") ? " (recadrée)" : "";
+    return `<div class="credit"><b>${esc(b.fr)}</b> <i>(${esc(b.latin)})</i><br>${line("Photo" + crop, m.photo)}<br>${line("Chant", m.audio)}</div>`;
   }).join("");
   $("menu").hidden = true; $("credits").hidden = false;
+};
+
+/* ---------- Export des photos pour recadrage ---------- */
+$("btn-export").onclick = async () => {
+  const list = activeBirds().filter((b) => isReady(b.id));
+  if (!confirm(`Télécharger les ${list.length} photos dans le dossier Téléchargements du téléphone ?\nAutorisez les téléchargements multiples si Chrome le demande.`)) return;
+  const cache = await caches.open(MEDIA_CACHE);
+  let n = 0;
+  for (const b of list) {
+    const r = await cache.match(mediaKey(b.id, "photo"));
+    if (!r) continue;
+    const blob = await r.blob();
+    const ext = /png/.test(blob.type) ? "png" : /webp/.test(blob.type) ? "webp" : "jpg";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `${b.id}.${ext}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    n++; await sleep(450);
+  }
+  alert(`${n} photos envoyées vers Téléchargements.`);
 };
 $("btn-close-credits").onclick = () => { $("credits").hidden = true; menuOpen = false; scheduleAuto(); };
 $("btn-update").onclick = async () => {

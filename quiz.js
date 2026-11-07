@@ -4,7 +4,7 @@
 const QUIZ_KEY = "oiseaux-quiz-v1";
 const AMB_KEY = "oiseaux-ambiance-off";
 const QUIZ_LEN = 10;
-const NEXT_MS = 2800;
+const NEXT_MS = 1000;          // passage au groupe suivant
 
 /* ---------- Progression ---------- */
 function loadQuiz() { try { return JSON.parse(localStorage.getItem(QUIZ_KEY)) || { sessions: [], birds: {} }; } catch { return { sessions: [], birds: {} }; } }
@@ -33,50 +33,23 @@ const Sfx = {
   bad() { this.tone(240, 0, 0.45, "triangle", 0.22, 150); },
   end() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, i * 0.16, i === 3 ? 1.6 : 0.5, "sine", 0.2));
           this.tone(1568, 0.64, 1.6, "sine", 0.06); },                                                    // fin du quiz
-  noise(seconds, brown) {
-    const c = this.ctx, n = c.sampleRate * seconds, buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
-    let last = 0;
-    for (let i = 0; i < n; i++) {
-      const w = Math.random() * 2 - 1;
-      if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w;
-    }
-    const s = c.createBufferSource(); s.buffer = buf; s.loop = true; return s;
+  // ambiance : votre fichier ambiance.mp3 déposé sur GitHub (joué en boucle)
+  async startAmbience() {
+    if (this.off || this.amb || !isLocal("_ambiance", "file")) return;
+    const r = await (await caches.open(MEDIA_CACHE)).match(localKey("_ambiance", "file"));
+    if (!r || this.amb) return;
+    const url = URL.createObjectURL(await r.blob());
+    const a = new Audio(url); a.loop = true; a.volume = 0;
+    this.amb = { a, url };
+    try { await a.play(); } catch { return; }
+    for (let k = 1; k <= 20 && this.amb && this.amb.a === a; k++) { a.volume = 0.35 * k / 20; await sleep(100); }
   },
-  lfo(freq, depth, target) {
-    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
-    o.frequency.value = freq; g.gain.value = depth; o.connect(g).connect(target); o.start(); return o;
-  },
-  startAmbience() {
-    if (this.off || this.amb) return;
-    const c = this.ctx, master = c.createGain();
-    master.gain.setValueAtTime(0.0001, c.currentTime);
-    master.gain.exponentialRampToValueAtTime(0.16, c.currentTime + 2.5);
-    master.connect(c.destination);
-    const nodes = [];
-    // ruisseau : bruit filtré dont la fréquence ondule (gargouillis)
-    const w = this.noise(6, false); nodes.push(w);
-    [[900, 0.8, 0.55, 0.7, 350], [2600, 1.4, 0.22, 1.9, 700]].forEach(([f, q, vol, lf, depth]) => {
-      const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = f; bp.Q.value = q;
-      const g = c.createGain(); g.gain.value = vol;
-      w.connect(bp).connect(g).connect(master);
-      nodes.push(this.lfo(lf, depth, bp.frequency));
-    });
-    // vent dans les arbres : bruit grave dont le volume monte et retombe lentement
-    const b = this.noise(8, true); nodes.push(b);
-    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 600; lp.Q.value = 0.8;
-    const wg = c.createGain(); wg.gain.value = 0.5;
-    b.connect(lp).connect(wg).connect(master);
-    nodes.push(this.lfo(0.07, 0.35, wg.gain), this.lfo(0.045, 250, lp.frequency));
-    w.start(); b.start();
-    this.amb = { master, nodes };
-  },
-  stopAmbience(fade = 1) {
+  async stopAmbience(fade = 1) {
     if (!this.amb) return;
-    const { master, nodes } = this.amb, t = this.ctx.currentTime;
-    master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t);
-    master.gain.exponentialRampToValueAtTime(0.0001, t + fade);
-    setTimeout(() => nodes.forEach((n) => { try { n.stop(); } catch {} }), fade * 1000 + 100);
-    this.amb = null;
+    const { a, url } = this.amb; this.amb = null;
+    const v0 = a.volume, steps = Math.max(1, Math.round(fade * 10));
+    for (let k = 1; k <= steps; k++) { a.volume = Math.max(0, v0 * (1 - k / steps)); await sleep(100); }
+    a.pause(); URL.revokeObjectURL(url);
   },
 };
 
@@ -120,9 +93,10 @@ let qs = null;
 const Q = (id) => document.getElementById(id);
 
 async function startQuiz() {
+  await syncLocal();
   await ensurePhotos();
-  const withPhoto = BIRDS.filter((b) => photoUrls[b.id]);
-  const targets = withPhoto.filter((b) => meta.birds[b.id] && meta.birds[b.id].audio);
+  const withPhoto = activeBirds().filter((b) => photoUrls[b.id] || paysageUrls[b.id]);
+  const targets = withPhoto.filter((b) => hasSong(b.id));
   if (targets.length < 3) { alert("Il faut au moins 3 oiseaux avec leur chant pour jouer."); return; }
   const chosen = weightedPick(targets, Math.min(QUIZ_LEN, targets.length));
   qs = {
@@ -132,6 +106,7 @@ async function startQuiz() {
   clearTimeout(autoTimer);
   Sfx.init();
   Q("btn-amb").textContent = Sfx.off ? "🔇" : "🔊";
+  Q("btn-amb").style.visibility = isLocal("_ambiance", "file") ? "visible" : "hidden";
   Sfx.startAmbience();
   show("quiz");
   renderQuestion();
@@ -149,8 +124,13 @@ function renderQuestion() {
   q.options.forEach((b) => {
     const t = document.createElement("button");
     t.className = "tile"; t.dataset.id = b.id;
-    t.innerHTML = `<img alt="" draggable="false"><span class="tname">${b.fr}</span>`;
-    t.querySelector("img").src = photoUrls[b.id];
+    if (paysageUrls[b.id]) {            // votre recadrage paysage : plein cadre
+      t.innerHTML = `<img class="cover" alt="" draggable="false"><span class="badge"></span><span class="tname">${b.fr}</span>`;
+      t.querySelector("img").src = paysageUrls[b.id];
+    } else {                            // photo d'origine : entière, sur fond flou
+      t.innerHTML = `<img class="bg" alt="" draggable="false"><img class="fg" alt="" draggable="false"><span class="badge"></span><span class="tname">${b.fr}</span>`;
+      t.querySelectorAll("img").forEach((im) => (im.src = photoUrls[b.id]));
+    }
     t.onclick = () => answer(b.id);
     tiles.appendChild(t);
   });
@@ -177,8 +157,8 @@ function answer(id) {
   const bar = Q("quiz-bar"); bar.style.transition = "none"; bar.style.width = "0";
   document.querySelectorAll("#quiz-tiles .tile").forEach((t) => {
     t.classList.add("revealed");
-    if (t.dataset.id === q.target.id) t.classList.add("good");
-    else if (t.dataset.id === id) t.classList.add("bad");
+    if (t.dataset.id === q.target.id) { t.classList.add("good"); t.querySelector(".badge").textContent = ok ? "✓" : "✓ bonne réponse"; }
+    else if (t.dataset.id === id) { t.classList.add("bad"); t.querySelector(".badge").textContent = "✗ votre choix"; }
     else t.classList.add("dim");
   });
   const s = progress.birds[q.target.id] = progress.birds[q.target.id] || { ok: 0, ko: 0 };
@@ -222,7 +202,7 @@ function finishQuiz() {
   Q("end-total").textContent = `${progress.sessions.length} partie${progress.sessions.length > 1 ? "s" : ""} jouée${progress.sessions.length > 1 ? "s" : ""} au total`;
   const uniq = [...new Map(qs.missed.map((b) => [b.id, b])).values()];
   Q("end-missed").innerHTML = uniq.length
-    ? `<h3>À revoir</h3><div class="missed">${uniq.map((b) => `<div class="mb"><img src="${photoUrls[b.id]}" alt=""><span>${b.fr}</span></div>`).join("")}</div>
+    ? `<h3>À revoir</h3><div class="missed">${uniq.map((b) => `<div class="mb"><img src="${paysageUrls[b.id] || photoUrls[b.id]}" alt=""><span>${b.fr}</span></div>`).join("")}</div>
        <p class="small">Ces oiseaux reviendront plus souvent dans les prochaines parties.</p>`
     : "";
   qs = null;
@@ -244,6 +224,7 @@ Q("btn-quiz-quit").onclick = quitQuiz;
 Q("btn-amb").onclick = () => {
   Sfx.off = !Sfx.off; localStorage.setItem(AMB_KEY, Sfx.off ? "1" : "0");
   Q("btn-amb").textContent = Sfx.off ? "🔇" : "🔊";
+  Q("btn-amb").style.visibility = isLocal("_ambiance", "file") ? "visible" : "hidden";
   if (Sfx.off) Sfx.stopAmbience(0.5); else { Sfx.init(); Sfx.startAmbience(); }
 };
 Q("btn-again").onclick = startQuiz;
