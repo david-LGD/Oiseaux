@@ -131,3 +131,7 @@ h1 { font-size: 2rem; margin-bottom: 10px; }
 .tile.good .badge { display: block; background: #8fd694; color: #0b1a12; }
 .tile.bad .badge { display: block; background: #ff8a80; color: #2a0b08; }
 .tile.bad { border-color: #ff8a80; border-width: 3px; }
+
+#quiz-feedback small { font-weight: 400; opacity: .7; font-size: .8rem; }
+.row input[type=checkbox] { width: 24px; height: 24px; accent-color: #e9b949; }
+.mini { margin-top: 6px; padding: 6px 10px; border-radius: 10px; border: 1px solid #ffffff33; background: #ffffff10; color: inherit; font-size: .8rem; }

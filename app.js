@@ -12,6 +12,8 @@ const HOLD_MS = 300;            // doigt immobile => chant
 const MOVE_PX = 12;             // au-delà => c'est un glissement
 const RESUME_MS = 1500;         // pause avant reprise du défilement
 const MAX_AUDIO_BYTES = 8e6;
+// enregistrements à écarter : prononciations du nom, voix humaines, extraits radio…
+const BAD_AUDIO = /^file:\s*(en|fr|de|nl|es|it|pt|sv|pl|ru)(-[a-z]{2})?-|ll-q\d+|pronunciation|prononciation|aussprache|spoken|voice|narrat|wikipedia|podcast|radio|interview/i;
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -148,6 +150,8 @@ async function findAudioCandidates(b) {
     for (const p of (r.query && r.query.pages) || []) {
       if (seen.has(p.title) || !p.imageinfo) continue;
       seen.add(p.title);
+      if (BAD_AUDIO.test(p.title)) continue;
+      if (((meta.badAudio || {})[b.id] || []).includes(p.title.replace(/^File:/, ""))) continue;
       const t = p.title.toLowerCase().replace(/_/g, " ");
       if (!t.includes(latin) && !t.includes(en)) continue;   // jamais un autre oiseau
       let score = 0;
@@ -283,19 +287,20 @@ function show(name) {
   const feedOn = name === "feed";
   $("feed").hidden = !feedOn; $("btn-menu").hidden = !feedOn;
   if (!feedOn) { clearTimeout(autoTimer); $("hint").hidden = true; }
+  if (typeof Sfx !== "undefined" && !feedOn && name !== "quiz") Sfx.stopAmbience(0.8);
 }
 function refreshHome() {
   const c = counts();
   const ready = meta.prepared && c.photos > 0;
   $("btn-start").hidden = !ready;
   $("btn-quiz").hidden = !ready || c.songs < 3;
-  const needsUpgrade = ready && !Array.isArray(meta.active) && c.songs < TARGET;
+  const needsUpgrade = ready && c.songs < TARGET;
   $("btn-prepare").hidden = ready && !needsUpgrade;
-  $("btn-prepare").textContent = needsUpgrade ? "Remplacer les oiseaux sans chant" : "Préparer l'appli";
+  $("btn-prepare").textContent = needsUpgrade ? "Rechercher les chants manquants" : "Préparer l'appli";
   let note = "";
   if (!ready) note = navigator.onLine ? "Première utilisation : connexion internet nécessaire une seule fois (environ 30 à 60 Mo)."
                                       : "Connectez-vous à internet pour la première préparation.";
-  else if (needsUpgrade) note = `${TARGET - c.songs} oiseaux n'ont pas de chant : touchez le bouton ci-dessus (connexion requise) pour les remplacer par des oiseaux de France.`;
+  else if (needsUpgrade) note = `${TARGET - c.songs} oiseau(x) sans chant : touchez le bouton ci-dessus (connexion requise). S'il n'existe aucun bon enregistrement, l'oiseau est remplacé par un oiseau de France.`;
   else if (c.photos < TARGET || c.songs < TARGET)
     note = `${c.photos} oiseaux, dont ${c.songs} avec chant. Menu ⋯ > Retélécharger pour compléter.`;
   $("home-note").textContent = note;
@@ -308,6 +313,7 @@ let photoUrls = {};          // id -> objectURL (photo Wikimedia)
 let portraitUrls = {}, paysageUrls = {};   // vos recadrages
 let pool = [];               // oiseaux disponibles
 let speed = +(localStorage.getItem(SPEED_KEY) || 6);
+let skipPlay = null;
 let autoTimer = null, playing = false, menuOpen = false, wakeLock = null, hintTimer = null;
 
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -354,6 +360,7 @@ async function startFeed() {
   feed.innerHTML = ""; appendRound(); appendRound();
   show("feed"); feed.scrollTop = 0;
   requestWakeLock();
+  if (typeof Sfx !== "undefined") { Sfx.init(); Sfx.startAmbience(); }
   $("hint").hidden = false;
   clearTimeout(hintTimer); hintTimer = setTimeout(() => ($("hint").hidden = true), 9000);
   scheduleAuto();
@@ -386,7 +393,8 @@ feed.addEventListener("scroll", () => { clearTimeout(autoTimer); clearTimeout(se
 /* ---------- Toucher : glisser = défiler, poser = écouter ---------- */
 let touch = null;
 feed.addEventListener("pointerdown", (e) => {
-  if (playing || !e.isPrimary) return;
+  if (!e.isPrimary) return;
+  if (playing) { if (skipPlay) skipPlay(); return; }   // second toucher : oiseau suivant
   clearTimeout(autoTimer);
   touch = { x: e.clientX, y: e.clientY, t: performance.now(), fired: false };
   touch.timer = setTimeout(() => { if (touch) { touch.fired = true; trigger(); } }, HOLD_MS);
@@ -445,17 +453,22 @@ async function trigger() {
   const total = ok ? SONG_MS : 5000;
   requestAnimationFrame(() => { bar.style.transition = `width ${total}ms linear`; bar.style.width = "100%"; });
 
-  // le chant va jusqu'au bout, même si le doigt est relevé
-  await sleep(total - 600);
-  if (audio) { const v0 = audio.volume; for (let k = 1; k <= 12; k++) { audio.volume = Math.max(0, v0 * (1 - k / 12)); await sleep(50); } audio.pause(); }
-  else await sleep(600);
+  // le chant dure 10 s (même si le doigt est relevé) ; un nouveau toucher passe à l'oiseau suivant
+  let skipped = false;
+  await new Promise((res) => {
+    const t = setTimeout(res, total - 600);
+    skipPlay = () => { skipped = true; clearTimeout(t); res(); };
+  });
+  skipPlay = null;
+  if (audio) { const v0 = audio.volume, n = skipped ? 5 : 12; for (let k = 1; k <= n; k++) { audio.volume = Math.max(0, v0 * (1 - k / n)); await sleep(40); } audio.pause(); }
+  else if (!skipped) await sleep(600);
   if (url) URL.revokeObjectURL(url);
   card.classList.add("out");
-  await sleep(500);
+  await sleep(skipped ? 250 : 400);
   card.hidden = true; slide.classList.remove("playing");
   feed.classList.remove("locked");
   playing = false;
-  scheduleAuto(RESUME_MS);
+  advance();                        // oiseau suivant tout de suite
 }
 
 /* ---------- Écran toujours allumé ---------- */
@@ -470,7 +483,13 @@ document.addEventListener("visibilitychange", () => {
 /* ---------- Menu, réglages, crédits ---------- */
 $("sel-speed").value = String(speed);
 $("sel-speed").onchange = (e) => { speed = +e.target.value; localStorage.setItem(SPEED_KEY, speed); };
-$("btn-menu").onclick = () => { if (playing) return; menuOpen = true; clearTimeout(autoTimer); $("menu").hidden = false; };
+$("btn-menu").onclick = () => {
+  if (playing) return; menuOpen = true; clearTimeout(autoTimer);
+  $("row-amb").hidden = !isLocal("_ambiance", "file");
+  $("chk-amb").checked = !(typeof Sfx !== "undefined" && Sfx.off);
+  $("menu").hidden = false;
+};
+$("chk-amb").onchange = (e) => { if (typeof Sfx !== "undefined") Sfx.setOff(!e.target.checked); };
 $("btn-close-menu").onclick = () => { $("menu").hidden = true; menuOpen = false; scheduleAuto(); };
 $("btn-credits").onclick = () => {
   const esc = (s) => String(s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -480,8 +499,12 @@ $("btn-credits").onclick = () => {
   $("credits-list").innerHTML = activeBirds().map((b) => {
     const m = meta.birds[b.id] || {};
     const crop = isLocal(b.id, "portrait") || isLocal(b.id, "paysage") ? " (recadrée)" : "";
-    return `<div class="credit"><b>${esc(b.fr)}</b> <i>(${esc(b.latin)})</i><br>${line("Photo" + crop, m.photo)}<br>${line("Chant", m.audio)}</div>`;
+    return `<div class="credit"><b>${esc(b.fr)}</b> <i>(${esc(b.latin)})</i><br>${line("Photo" + crop, m.photo)}<br>${line("Chant", m.audio)}
+      <br><button class="mini" data-other="${b.id}">🔁 Ce n'est pas le bon chant : en chercher un autre</button></div>`;
   }).join("");
+  $("credits-list").querySelectorAll("[data-other]").forEach((btn) => (btn.onclick = () => {
+    btn.textContent = "Recherche…"; btn.disabled = true; otherSong(btn.dataset.other);
+  }));
   $("menu").hidden = true; $("credits").hidden = false;
 };
 
@@ -526,6 +549,39 @@ $("btn-prepare").onclick = () => {
 };
 $("btn-retry").onclick = prepare;
 window.addEventListener("resize", () => { if (!feed.hidden) feed.scrollTop = currentIndex() * slideH(); });
+
+// nettoyage : écarte un chant déjà enregistré qui serait une voix humaine
+(function dropBadAudio() {
+  let changed = false;
+  Object.entries(meta.birds).forEach(([id, m]) => {
+    if (m.audio && m.audio.title && BAD_AUDIO.test("File:" + m.audio.title)) {
+      meta.badAudio = meta.badAudio || {};
+      (meta.badAudio[id] = meta.badAudio[id] || []).push(m.audio.title);
+      delete m.audio; changed = true;
+    }
+  });
+  // signalé : l'enregistrement du pygargue vocifère est une voix humaine
+  const pyg = meta.birds["pygargue-vocifere"];
+  if (!meta.fixPygargue && pyg && pyg.audio) {
+    meta.badAudio = meta.badAudio || {};
+    if (pyg.audio.title) (meta.badAudio["pygargue-vocifere"] = meta.badAudio["pygargue-vocifere"] || []).push(pyg.audio.title);
+    delete pyg.audio; changed = true;
+  }
+  meta.fixPygargue = true;
+  if (changed) saveMeta();
+})();
+
+/* ---------- Chant incorrect : en chercher un autre ---------- */
+async function otherSong(id) {
+  if (!navigator.onLine) { alert("Connexion internet nécessaire."); return; }
+  const b = byId(id), m = bm(id);
+  if (m.audio && m.audio.title) { meta.badAudio = meta.badAudio || {}; (meta.badAudio[id] = meta.badAudio[id] || []).push(m.audio.title); }
+  delete m.audio; saveMeta();
+  try { await fetchBird(b); } catch {}
+  alert(hasSong(id) ? `Nouveau chant trouvé pour : ${b.fr}.`
+    : `Aucun autre chant trouvé pour ${b.fr}. Il sera remplacé par un oiseau de France via l'accueil (« Rechercher les chants manquants »).`);
+  $("btn-credits").onclick();
+}
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 refreshHome();

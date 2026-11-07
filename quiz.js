@@ -4,7 +4,8 @@
 const QUIZ_KEY = "oiseaux-quiz-v1";
 const AMB_KEY = "oiseaux-ambiance-off";
 const QUIZ_LEN = 10;
-const NEXT_MS = 1000;          // passage au groupe suivant
+const SOLUTION_MS = 5000;      // solution visible + chant, puis groupe suivant (ou toucher)
+const AMB_VOL = 0.06;          // ambiance très basse
 
 /* ---------- Progression ---------- */
 function loadQuiz() { try { return JSON.parse(localStorage.getItem(QUIZ_KEY)) || { sessions: [], birds: {} }; } catch { return { sessions: [], birds: {} }; } }
@@ -42,7 +43,11 @@ const Sfx = {
     const a = new Audio(url); a.loop = true; a.volume = 0;
     this.amb = { a, url };
     try { await a.play(); } catch { return; }
-    for (let k = 1; k <= 20 && this.amb && this.amb.a === a; k++) { a.volume = 0.35 * k / 20; await sleep(100); }
+    for (let k = 1; k <= 20 && this.amb && this.amb.a === a; k++) { a.volume = AMB_VOL * k / 20; await sleep(100); }
+  },
+  setOff(off) {
+    this.off = off; localStorage.setItem(AMB_KEY, off ? "1" : "0");
+    if (off) this.stopAmbience(0.5); else { this.init(); this.startAmbience(); }
   },
   async stopAmbience(fade = 1) {
     if (!this.amb) return;
@@ -63,6 +68,7 @@ async function playSong(id, ms) {
   if (isFinite(audio.duration) && audio.duration > 15) audio.currentTime = 1;
   let stopped = false;
   const ctrl = {
+    get active() { return !stopped; },
     async stop(fade = 500) {
       if (stopped) return; stopped = true; clearTimeout(timer);
       const v0 = audio.volume, steps = Math.max(1, Math.round(fade / 50));
@@ -152,9 +158,7 @@ async function listen() {
 function answer(id) {
   if (!qs || qs.answered) return;
   qs.answered = true;
-  const q = qs.questions[qs.i], ok = id === q.target.id;
-  if (qs.song) { qs.song.stop(400); qs.song = null; }
-  const bar = Q("quiz-bar"); bar.style.transition = "none"; bar.style.width = "0";
+  const q = qs.questions[qs.i], ok = id === q.target.id, token = qs.token;
   document.querySelectorAll("#quiz-tiles .tile").forEach((t) => {
     t.classList.add("revealed");
     if (t.dataset.id === q.target.id) { t.classList.add("good"); t.querySelector(".badge").textContent = ok ? "✓" : "✓ bonne réponse"; }
@@ -166,15 +170,30 @@ function answer(id) {
   saveQuiz(progress);
   Q("quiz-score").textContent = `${qs.score} ✓`;
   const fb = Q("quiz-feedback");
-  fb.textContent = ok ? `Bravo ! ${q.target.fr}.` : `Raté… la réponse : ${q.target.fr}.`;
+  fb.innerHTML = (ok ? `Bravo ! ${q.target.fr}.` : `Raté… la réponse : ${q.target.fr}.`) + `<br><small>Touchez l'écran pour continuer</small>`;
   fb.className = ok ? "ok" : "ko";
-  const token = qs.token;
-  setTimeout(() => {
+
+  // la solution reste visible 5 s avec le chant de l'oiseau
+  const bar = Q("quiz-bar");
+  bar.style.transition = "none"; bar.style.width = "0";
+  requestAnimationFrame(() => { bar.style.transition = `width ${SOLUTION_MS}ms linear`; bar.style.width = "100%"; });
+  if (!(qs.song && qs.song.active)) {
+    playSong(q.target.id, SOLUTION_MS).then((sg) => {
+      if (qs && qs.token === token && qs.answered) qs.song = sg; else if (sg) sg.stop(0);
+    });
+  }
+  const timer = setTimeout(next, SOLUTION_MS);
+  const quiz = Q("quiz");
+  function onTap(e) { if (e.target.closest("#btn-quiz-quit, #btn-amb")) return; next(); }
+  function next() {
+    clearTimeout(timer); quiz.removeEventListener("click", onTap);
     if (!qs || qs.token !== token) return;
+    if (qs.song) { qs.song.stop(300); qs.song = null; }
     qs.i++;
     if (qs.i < qs.questions.length) { Sfx.chime(); renderQuestion(); }
     else finishQuiz();
-  }, NEXT_MS);
+  }
+  setTimeout(() => quiz.addEventListener("click", onTap), 50);   // pas le toucher de la réponse
 }
 
 function finishQuiz() {
@@ -219,7 +238,7 @@ function quitQuiz() {
 /* ---------- Boutons ---------- */
 Q("btn-quiz").onclick = startQuiz;
 Q("btn-menu-quiz").onclick = () => { Q("menu").hidden = true; menuOpen = false; startQuiz(); };
-Q("btn-replay").onclick = () => { if (qs && !qs.answered) listen(); };
+Q("btn-replay").onclick = (e) => { if (qs && !qs.answered) listen(); };
 Q("btn-quiz-quit").onclick = quitQuiz;
 Q("btn-amb").onclick = () => {
   Sfx.off = !Sfx.off; localStorage.setItem(AMB_KEY, Sfx.off ? "1" : "0");
