@@ -16,8 +16,9 @@
     <div class="home-inner">
       <img src="icons/icon-192.png" alt="" class="home-logo">
       <h1>Chants d'oiseaux</h1>
-      <p class="home-sub">30 oiseaux du monde entier.<br>Touchez une photo pour écouter son chant.</p>
-      <button id="btn-start" class="btn primary">Commencer</button>
+      <p class="home-sub">30 oiseaux du monde entier.<br>Regardez, écoutez, devinez.</p>
+      <button id="btn-start" class="btn primary">Défilement des oiseaux</button>
+      <button id="btn-quiz" class="btn quiz">🎧 Quiz : quel oiseau chante ?</button>
       <button id="btn-prepare" class="btn primary" hidden>Préparer l'appli</button>
       <p id="home-note" class="home-note"></p>
     </div>
@@ -35,6 +36,36 @@
         <button id="btn-retry" class="btn" hidden>Réessayer les échecs</button>
         <button id="btn-dl-start" class="btn primary" hidden>Commencer</button>
       </div>
+    </div>
+  </section>
+
+  <!-- Quiz -->
+  <section id="quiz" hidden>
+    <header class="qhead">
+      <button id="btn-quiz-quit" class="qbtn" aria-label="Quitter">✕</button>
+      <div class="qinfo"><b id="quiz-count"></b><span id="quiz-score"></span></div>
+      <button id="btn-amb" class="qbtn" aria-label="Ambiance sonore">🔊</button>
+    </header>
+    <div id="quiz-tiles"></div>
+    <footer class="qfoot">
+      <p id="quiz-feedback"></p>
+      <div class="bar"><div id="quiz-bar"></div></div>
+      <button id="btn-replay" class="btn">🔁 Réécouter le chant</button>
+    </footer>
+  </section>
+
+  <section id="quiz-end" class="screen" hidden>
+    <div class="end-inner">
+      <p class="end-label">Résultat</p>
+      <p id="end-score"></p>
+      <p id="end-msg"></p>
+      <p id="end-best"></p>
+      <h3>Vos dernières parties</h3>
+      <div id="end-chart"></div>
+      <p id="end-total" class="small"></p>
+      <div id="end-missed"></div>
+      <button id="btn-again" class="btn primary">Rejouer</button>
+      <button id="btn-end-home" class="btn">Accueil</button>
     </div>
   </section>
 
@@ -70,6 +101,7 @@
           <option value="12">12 s</option>
         </select>
       </label>
+      <button id="btn-menu-quiz" class="btn quiz">🎧 Jouer au quiz</button>
       <button id="btn-credits" class="btn">Crédits photos et chants</button>
       <button id="btn-update" class="btn">Retélécharger les médias</button>
       <button id="btn-close-menu" class="btn primary">Fermer</button>
@@ -87,5 +119,6 @@
 
   <script src="birds.js"></script>
   <script src="app.js"></script>
+  <script src="quiz.js"></script>
 </body>
 </html>

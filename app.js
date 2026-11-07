@@ -207,14 +207,16 @@ async function prepare() {
 
 /* ---------- Navigation entre écrans ---------- */
 function show(name) {
-  ["home", "download"].forEach((s) => ($(s).hidden = s !== name));
+  ["home", "download", "quiz", "quiz-end"].forEach((s) => ($(s).hidden = s !== name));
   const feedOn = name === "feed";
   $("feed").hidden = !feedOn; $("btn-menu").hidden = !feedOn;
+  if (!feedOn) { clearTimeout(autoTimer); $("hint").hidden = true; }
 }
 function refreshHome() {
   const c = counts();
   const ready = meta.prepared && c.photos > 0;
   $("btn-start").hidden = !ready;
+  $("btn-quiz").hidden = !ready || c.songs < 3;
   $("btn-prepare").hidden = ready;
   let note = "";
   if (!ready) note = navigator.onLine ? "Première utilisation : connexion internet nécessaire une seule fois (environ 30 à 60 Mo)."
@@ -244,25 +246,25 @@ function appendRound() {
   for (const b of order) {
     const s = document.createElement("div");
     s.className = "slide"; s.dataset.id = b.id;
-    s.innerHTML = `<img alt="" draggable="false" decoding="async"><span class="zone">${b.zone}</span>
-      <div class="label"><b>${b.fr}</b><i>${b.latin}</i></div>`;
-    s.querySelector("img").src = photoUrls[b.id];
+    s.innerHTML = `<img class="bg" alt="" draggable="false" decoding="async"><img class="fg" alt="" draggable="false" decoding="async">
+      <span class="zone">${b.zone}</span><div class="label"><b>${b.fr}</b><i>${b.latin}</i></div>`;
+    s.querySelectorAll("img").forEach((im) => (im.src = photoUrls[b.id]));
     feed.appendChild(s);
   }
 }
 
-async function startFeed() {
-  pool = [];
+async function ensurePhotos() {
   const cache = await caches.open(MEDIA_CACHE);
   for (const b of BIRDS) {
-    if (!isReady(b.id)) continue;
-    if (!photoUrls[b.id]) {
-      const r = await cache.match(mediaKey(b.id, "photo"));
-      if (!r) continue;
-      photoUrls[b.id] = URL.createObjectURL(await r.blob());
-    }
-    pool.push(b);
+    if (!isReady(b.id) || photoUrls[b.id]) continue;
+    const r = await cache.match(mediaKey(b.id, "photo"));
+    if (r) photoUrls[b.id] = URL.createObjectURL(await r.blob());
   }
+}
+
+async function startFeed() {
+  await ensurePhotos();
+  pool = BIRDS.filter((b) => photoUrls[b.id]);
   if (!pool.length) { meta.prepared = false; saveMeta(); refreshHome(); return; }
   feed.innerHTML = ""; appendRound(); appendRound();
   show("feed"); feed.scrollTop = 0;
