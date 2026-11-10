@@ -15,7 +15,7 @@ const MAX_AUDIO_BYTES = 8e6;
 // enregistrements à écarter : prononciations du nom, voix humaines, extraits radio…
 const BAD_AUDIO = /^file:\s*(en|fr|de|nl|es|it|pt|sv|pl|ru)(-[a-z]{2})?-|ll-q\d+|pronunciation|prononciation|aussprache|spoken|voice|narrat|wikipedia|podcast|radio|interview/i;
 
-const APP_VERSION = "9";      // à augmenter à chaque mise à jour (avec sw.js)
+const APP_VERSION = "11";      // à augmenter à chaque mise à jour (avec sw.js)
 const $ = (id) => document.getElementById(id);
 document.querySelectorAll(".app-version").forEach((e) => (e.textContent = APP_VERSION));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -29,12 +29,27 @@ const mediaKey = (id, kind) => `media/${id}/${kind}`;
 const localKey = (id, kind) => `local/${id}/${kind}`;
 
 /* ---------- Liste active : 30 oiseaux avec chant (réserves françaises si besoin) ---------- */
-const ALL = BIRDS.concat(typeof RESERVES !== "undefined" ? RESERVES : []);
-const TARGET = BIRDS.length;
-const byId = (id) => ALL.find((b) => b.id === id);
+const COLS = {
+  monde: { title: "Oiseaux du monde", icon: "🌍", sub: "30 oiseaux du monde entier.", list: BIRDS, reserves: RESERVES,
+           replaceNote: "un oiseau de France" },
+  bretagne: { title: "Oiseaux de Bretagne", icon: "🌊", sub: "30 oiseaux de Bretagne, de la terre et de la mer.", list: BRETAGNE, reserves: BRETAGNE_RESERVES,
+              replaceNote: "un autre oiseau de Bretagne du même milieu" },
+};
+const COL_KEY = "oiseaux-collection";
+let COL = localStorage.getItem(COL_KEY) === "bretagne" ? "bretagne" : "monde";
+const colList = () => COLS[COL].list;
+const colReserves = () => COLS[COL].reserves;
+const TARGET = 30;
+// recherche d'un oiseau : d'abord dans la collection en cours (les fiches diffèrent d'une collection à l'autre)
+const byId = (id) => colList().concat(colReserves(), BIRDS, RESERVES, BRETAGNE, BRETAGNE_RESERVES).find((b) => b.id === id);
+// anciennes données (une seule collection) -> par collection
+if (Array.isArray(meta.active) && !meta.activeBy) { meta.activeBy = { monde: meta.active }; }
+if (meta.prepared && !meta.preparedBy) { meta.preparedBy = { monde: true }; }
+meta.activeBy = meta.activeBy || {}; meta.preparedBy = meta.preparedBy || {};
 function activeBirds() {
-  if (Array.isArray(meta.active) && meta.active.length) return meta.active.map(byId).filter(Boolean);
-  return BIRDS.filter((b) => isReady(b.id));
+  const ids = meta.activeBy[COL];
+  if (Array.isArray(ids) && ids.length) return ids.map(byId).filter(Boolean);
+  return colList().filter((b) => isReady(b.id));
 }
 const hasSong = (id) => !!(meta.birds[id] && meta.birds[id].audio);
 const isLocal = (id, kind) => !!(meta.local && meta.local[id] && meta.local[id][kind]);
@@ -202,6 +217,57 @@ async function fetchBird(b) {
   }
 }
 
+/* ---------- Affichage selon la collection ---------- */
+function zoneLabel(b) {
+  if (!b.milieu) return b.zone;
+  return `${b.milieu === "mer" ? "🌊 Mer" : "🌳 Terre"} · ${b.migr ? "Migrateur" : "Sédentaire"}`;
+}
+function fillCard(b) {
+  const esc = (s) => String(s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const br = meta.birds[b.id] && meta.birds[b.id].breton;
+  $("card-name").textContent = b.fr;
+  $("card-latin").textContent = b.latin + (b.milieu && br ? ` · en breton : ${br}` : "");
+  const rows = b.milieu
+    ? [["Milieu", b.milieu === "mer" ? "Mer et littoral" : "Terre"], ["Statut", b.statut], ["Présence", b.presence],
+       ["Où l'observer", b.lieu], ["Taille", b.taille]]
+    : [["Répartition", b.repartition], ["Habitat", b.habitat], ["Taille", b.taille]];
+  $("card-dl").innerHTML = rows.filter((r) => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+  $("card-anecdote").textContent = b.anecdote;
+}
+
+/* Noms bretons : libellés « br » de Wikidata (source communautaire) */
+async function fetchBretonNames(list) {
+  for (const b of list) {
+    const m = bm(b.id);
+    if (m.bretonChecked) continue;
+    try {
+      const r = await api(ENWIKI, { action: "query", titles: b.latin, redirects: "1", prop: "pageprops", ppprop: "wikibase_item" });
+      const q = r.query.pages[0] && r.query.pages[0].pageprops && r.query.pages[0].pageprops.wikibase_item;
+      if (q) {
+        const w = await api("https://www.wikidata.org/w/api.php", { action: "wbgetentities", ids: q, props: "labels", languages: "br" });
+        const lab = w.entities && w.entities[q] && w.entities[q].labels && w.entities[q].labels.br && w.entities[q].labels.br.value;
+        m.breton = lab && lab.toLowerCase() !== b.latin.toLowerCase() ? lab : null;
+      }
+      m.bretonChecked = true;
+    } catch {}
+  }
+  saveMeta();
+}
+
+/* Choix de la collection sur l'accueil */
+function renderCollections() {
+  document.querySelectorAll(".col-btn").forEach((btn) => {
+    btn.classList.toggle("on", btn.dataset.col === COL);
+    btn.querySelector(".col-state").textContent = meta.preparedBy[btn.dataset.col] ? "prête" : "à préparer";
+  });
+  $("home-sub").textContent = COLS[COL].sub;
+}
+document.querySelectorAll(".col-btn").forEach((btn) => (btn.onclick = () => {
+  COL = btn.dataset.col; localStorage.setItem(COL_KEY, COL);
+  Object.values(photoUrls).forEach((u) => URL.revokeObjectURL(u)); photoUrls = {};
+  refreshHome();
+}));
+
 /* ---------- Écran de préparation ---------- */
 function isReady(id) { const m = meta.birds[id]; return !!(m && m.photo); }
 function counts() {
@@ -212,19 +278,19 @@ function counts() {
 
 async function chooseActive(rowFor, mark) {
   const ok = (b) => isReady(b.id) && hasSong(b.id);
-  const active = BIRDS.filter(ok);
-  for (const r of RESERVES) {
-    if (active.length >= TARGET) break;
-    if (!ok(r)) {
-      rowFor(r).textContent = "recherche…";
-      try { await fetchBird(r); } catch (e) { console.warn(r.id, e); }
+  const list = colList(), used = new Set(list.map((b) => b.id)), active = [];
+  for (const b of list) {
+    if (ok(b)) { active.push(b); continue; }
+    let found = null;
+    for (const r of colReserves()) {               // remplaçant du même milieu (terre / mer) si précisé
+      if (used.has(r.id) || (b.milieu && r.milieu !== b.milieu)) continue;
+      if (!ok(r)) { rowFor(r).textContent = "recherche…"; try { await fetchBird(r); } catch (e) { console.warn(r.id, e); } }
+      mark(r);
+      if (ok(r)) { found = r; used.add(r.id); break; }
     }
-    mark(r);
-    if (ok(r)) active.push(r);
+    active.push(found || b);                       // à défaut, l'oiseau reste (avec photo seule)
   }
-  // s'il manque encore des oiseaux, on garde ceux qui ont au moins une photo
-  BIRDS.forEach((b) => { if (active.length < TARGET && isReady(b.id) && !active.includes(b)) active.push(b); });
-  meta.active = active.map((b) => b.id);
+  meta.activeBy[COL] = active.filter((b) => isReady(b.id)).map((b) => b.id);
   saveMeta();
 }
 
@@ -243,21 +309,22 @@ async function prepare() {
     }
     return rows[b.id];
   };
-  BIRDS.forEach((b) => rowFor(b));
-  const todo = BIRDS.filter((b) => !(meta.birds[b.id] && meta.birds[b.id].photo && meta.birds[b.id].audio));
-  let done = BIRDS.length - todo.length;
+  const LIST = colList();
+  LIST.forEach((b) => rowFor(b));
+  const todo = LIST.filter((b) => !(meta.birds[b.id] && meta.birds[b.id].photo && meta.birds[b.id].audio));
+  let done = LIST.length - todo.length;
   const mark = (b) => {
     const m = meta.birds[b.id] || {};
     const st = rowFor(b);
-    const reserve = !BIRDS.includes(b);
+    const reserve = !LIST.includes(b);
     if (m.photo && m.audio) { st.textContent = reserve ? "✓ ajouté" : "✓"; st.className = "st ok"; }
     else if (reserve) { st.textContent = "non trouvé"; st.className = "st err"; }
     else { st.textContent = "sans chant → remplacé"; st.className = "st warn"; }
   };
-  BIRDS.forEach((b) => { if (!todo.includes(b)) mark(b); });
+  LIST.forEach((b) => { if (!todo.includes(b)) mark(b); });
   const update = () => {
-    $("dl-bar").style.width = Math.round((done / BIRDS.length) * 100) + "%";
-    $("dl-status").textContent = `${done} / ${BIRDS.length} oiseaux traités`;
+    $("dl-bar").style.width = Math.round((done / LIST.length) * 100) + "%";
+    $("dl-status").textContent = `${done} / ${LIST.length} oiseaux traités`;
   };
   update();
   let i = 0;
@@ -271,12 +338,13 @@ async function prepare() {
     }
   };
   await Promise.all([worker(), worker(), worker()]);
-  if (BIRDS.some((b) => !(isReady(b.id) && hasSong(b.id)))) {
-    $("dl-status").textContent = "Remplacement des oiseaux sans chant par des oiseaux de France…";
-    const sep = document.createElement("li"); sep.innerHTML = "<span><b>Oiseaux de France ajoutés</b></span>"; list.appendChild(sep);
+  if (LIST.some((b) => !(isReady(b.id) && hasSong(b.id)))) {
+    $("dl-status").textContent = `Remplacement des oiseaux sans chant par ${COLS[COL].replaceNote}…`;
+    const sep = document.createElement("li"); sep.innerHTML = "<span><b>Oiseaux de remplacement</b></span>"; list.appendChild(sep);
   }
   await chooseActive(rowFor, mark);
-  meta.prepared = true; saveMeta();
+  if (COL === "bretagne") { $("dl-status").textContent = "Recherche des noms en breton…"; await fetchBretonNames(activeBirds()); }
+  meta.preparedBy[COL] = true; saveMeta();
   const c = counts();
   $("dl-status").textContent = `Terminé : ${c.photos} oiseaux, dont ${c.songs} avec leur chant, disponibles hors ligne.`;
   $("btn-retry").hidden = c.photos === TARGET && c.songs === TARGET;
@@ -293,7 +361,8 @@ function show(name) {
 }
 function refreshHome() {
   const c = counts();
-  const ready = meta.prepared && c.photos > 0;
+  renderCollections();
+  const ready = !!meta.preparedBy[COL] && c.photos > 0;
   $("btn-start").hidden = !ready;
   $("btn-quiz").hidden = !ready || c.songs < 3;
   const needsUpgrade = ready && c.songs < TARGET;
@@ -302,7 +371,7 @@ function refreshHome() {
   let note = "";
   if (!ready) note = navigator.onLine ? "Première utilisation : connexion internet nécessaire une seule fois (environ 30 à 60 Mo)."
                                       : "Connectez-vous à internet pour la première préparation.";
-  else if (needsUpgrade) note = `${TARGET - c.songs} oiseau(x) sans chant : touchez le bouton ci-dessus (connexion requise). S'il n'existe aucun bon enregistrement, l'oiseau est remplacé par un oiseau de France.`;
+  else if (needsUpgrade) note = `${TARGET - c.songs} oiseau(x) sans chant : touchez le bouton ci-dessus (connexion requise). S'il n'existe aucun bon enregistrement, l'oiseau est remplacé par ${COLS[COL].replaceNote}.`;
   else if (c.photos < TARGET || c.songs < TARGET)
     note = `${c.photos} oiseaux, dont ${c.songs} avec chant. Menu ⋯ > Retélécharger pour compléter.`;
   $("home-note").textContent = note;
@@ -331,7 +400,7 @@ function appendRound() {
     const s = document.createElement("div");
     s.className = "slide"; s.dataset.id = b.id;
     s.innerHTML = `<img class="bg" alt="" draggable="false" decoding="async"><img class="fg" alt="" draggable="false" decoding="async">
-      <span class="zone">${b.zone}</span><div class="label"><b>${b.fr}</b><i>${b.latin}</i></div>`;
+      <span class="zone">${zoneLabel(b)}</span><div class="label"><b>${b.fr}</b><i>${b.latin}</i></div>`;
     s.querySelectorAll("img").forEach((im) => (im.src = portraitUrls[b.id] || photoUrls[b.id]));
     feed.appendChild(s);
   }
@@ -358,7 +427,7 @@ async function startFeed() {
   await syncLocal();
   await ensurePhotos();
   pool = activeBirds().filter((b) => photoUrls[b.id] || portraitUrls[b.id]);
-  if (!pool.length) { meta.prepared = false; saveMeta(); refreshHome(); return; }
+  if (!pool.length) { meta.preparedBy[COL] = false; saveMeta(); refreshHome(); return; }
   feed.innerHTML = ""; appendRound(); appendRound();
   show("feed"); feed.scrollTop = 0;
   requestWakeLock();
@@ -429,9 +498,7 @@ async function trigger() {
   slide.classList.add("playing");
 
   // fiche
-  $("card-name").textContent = b.fr; $("card-latin").textContent = b.latin;
-  $("card-rep").textContent = b.repartition; $("card-hab").textContent = b.habitat;
-  $("card-taille").textContent = b.taille; $("card-anecdote").textContent = b.anecdote;
+  fillCard(b);
   const card = $("card"), bar = $("card-bar");
   card.classList.remove("out"); card.hidden = false;
   bar.style.transition = "none"; bar.style.width = "0";
@@ -601,6 +668,37 @@ window.addEventListener("resize", () => { if (!feed.hidden) feed.scrollTop = cur
   meta.fixPygargue = true;
   if (changed) saveMeta();
 })();
+
+/* ---------- Forcer la mise à jour (sans toucher aux photos, chants ni scores) ---------- */
+async function checkUpdate() {
+  const btn = $("btn-check-update");
+  if (!navigator.onLine) { alert("Connexion internet nécessaire pour vérifier les mises à jour."); return; }
+  btn.disabled = true; btn.textContent = "Vérification…";
+  try {
+    const r = await fetch("app.js?v=" + Date.now(), { cache: "reload" });
+    const m = (await r.text()).match(/APP_VERSION = "(\d+)"/);
+    const online = m ? m[1] : null;
+    if (!online) throw new Error("version introuvable");
+    if (+online <= +APP_VERSION) { alert(`Vous avez déjà la dernière version (${APP_VERSION}).`); return; }
+    btn.textContent = `Installation de la version ${online}…`;
+    // on retire l'ancien code mis en cache ; les photos, chants et scores sont conservés
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k.startsWith("oiseaux-app-")).map((k) => caches.delete(k)));
+    // on recharge chaque fichier depuis le serveur, pour ne pas reprendre une copie ancienne du navigateur
+    await Promise.all(["./", "index.html", "style.css", "app.js", "quiz.js", "birds.js", "sw.js", "manifest.webmanifest"]
+      .map((f) => fetch(f, { cache: "reload" }).catch(() => {})));
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((g) => g.unregister()));
+    }
+    location.reload();
+  } catch (e) {
+    alert("Impossible de vérifier pour l'instant. Réessayez dans quelques minutes.");
+  } finally {
+    btn.disabled = false; btn.textContent = "🔄 Vérifier les mises à jour";
+  }
+}
+$("btn-check-update").onclick = checkUpdate;
 
 /* ---------- Chant incorrect : en chercher un autre ---------- */
 async function otherSong(id) {

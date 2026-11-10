@@ -17,7 +17,11 @@
       <img src="icons/icon-192.png" alt="" class="home-logo">
       <h1>Chants d'oiseaux</h1>
       <p class="version-badge">Version <span class="app-version"></span></p>
-      <p class="home-sub">30 oiseaux du monde entier.<br>Regardez, écoutez, devinez.</p>
+      <div class="cols">
+        <button class="col-btn" data-col="monde"><span class="col-ic">🌍</span><b>Oiseaux du monde</b><span class="col-state"></span></button>
+        <button class="col-btn" data-col="bretagne"><span class="col-ic">🌊</span><b>Oiseaux de Bretagne</b><span class="col-state"></span></button>
+      </div>
+      <p class="home-sub"><span id="home-sub"></span><br>Regardez, écoutez, devinez.</p>
       <button id="btn-start" class="btn primary">Défilement des oiseaux</button>
       <button id="btn-quiz" class="btn quiz">🎧 Quiz : quel oiseau chante ?</button>
       <button id="btn-prepare" class="btn primary" hidden>Préparer l'appli</button>
@@ -57,9 +61,22 @@
     </footer>
   </section>
 
+  <section id="quiz-cat" class="sheet" hidden>
+    <div class="sheet-inner">
+      <h2>Quiz : quels oiseaux ?</h2>
+      <button class="btn primary" data-cat="all">Tous les oiseaux de Bretagne</button>
+      <button class="btn" data-cat="terre">🌳 Oiseaux de terre</button>
+      <button class="btn" data-cat="mer">🌊 Oiseaux marins</button>
+      <button class="btn" data-cat="migr">✈️ Migrateurs</button>
+      <button class="btn" data-cat="sed">🏠 Sédentaires</button>
+      <button id="btn-cat-close" class="btn">Annuler</button>
+    </div>
+  </section>
+
   <section id="quiz-end" class="screen" hidden>
     <div class="end-inner">
       <p class="end-label">Résultat</p>
+      <p id="end-cat" class="small"></p>
       <p id="end-score"></p>
       <p id="end-msg"></p>
       <p id="end-best"></p>
@@ -80,11 +97,7 @@
     <div class="card-progress"><div id="card-bar"></div></div>
     <h2 id="card-name"></h2>
     <p id="card-latin"></p>
-    <dl>
-      <dt>Répartition</dt><dd id="card-rep"></dd>
-      <dt>Habitat</dt><dd id="card-hab"></dd>
-      <dt>Taille</dt><dd id="card-taille"></dd>
-    </dl>
+    <dl id="card-dl"></dl>
     <p id="card-anecdote"></p>
     <p id="card-nosound" hidden>Chant indisponible pour cet oiseau.</p>
   </div>
@@ -118,6 +131,7 @@
       <button id="btn-credits" class="btn">Crédits photos et chants</button>
       <button id="btn-export" class="btn">Exporter les photos (pour recadrage)</button>
       <button id="btn-update" class="btn">Retélécharger les médias</button>
+      <button id="btn-check-update" class="btn">🔄 Vérifier les mises à jour</button>
       <button id="btn-close-menu" class="btn primary">Fermer</button>
       <p class="author">Chants d'oiseaux · version <span class="app-version"></span><br>Créé par David LGD, de Betton</p>
     </div>

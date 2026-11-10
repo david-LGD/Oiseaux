@@ -103,16 +103,34 @@ function weightedPick(list, n) {
 let qs = null;
 const Q = (id) => document.getElementById(id);
 
-async function startQuiz() {
+/* Catégories (collection Bretagne) */
+const CATS = {
+  all: { label: "Tous les oiseaux", test: () => true },
+  terre: { label: "Oiseaux de terre", test: (b) => b.milieu === "terre" },
+  mer: { label: "Oiseaux marins", test: (b) => b.milieu === "mer" },
+  migr: { label: "Migrateurs", test: (b) => b.migr },
+  sed: { label: "Sédentaires", test: (b) => b.milieu && !b.migr },
+};
+let lastCat = "all";
+
+function startQuiz() {
+  if (COL !== "bretagne") return runQuiz("all");
+  Q("quiz-cat").hidden = false;                 // Bretagne : choix de la catégorie
+}
+
+async function runQuiz(cat) {
+  Q("quiz-cat").hidden = true; lastCat = cat;
   await syncLocal();
   await ensurePhotos();
   const withPhoto = activeBirds().filter((b) => photoUrls[b.id] || paysageUrls[b.id]);
-  const targets = withPhoto.filter((b) => hasSong(b.id));
-  if (targets.length < 3) { alert("Il faut au moins 3 oiseaux avec leur chant pour jouer."); return; }
+  const inCat = withPhoto.filter(CATS[cat].test);
+  const targets = inCat.filter((b) => hasSong(b.id));
+  if (targets.length < 3) { alert("Il faut au moins 3 oiseaux avec leur chant dans cette catégorie."); return; }
   const chosen = weightedPick(targets, Math.min(QUIZ_LEN, targets.length));
+  const pool = inCat.length >= 3 ? inCat : withPhoto;   // les 3 photos viennent de la même catégorie
   qs = {
-    i: 0, score: 0, missed: [], token: 0, song: null,
-    questions: chosen.map((t) => ({ target: t, options: shuffle([t, ...shuffle(withPhoto.filter((b) => b.id !== t.id)).slice(0, 2)]) })),
+    i: 0, score: 0, missed: [], token: 0, song: null, cat,
+    questions: chosen.map((t) => ({ target: t, options: shuffle([t, ...shuffle(pool.filter((b) => b.id !== t.id)).slice(0, 2)]) })),
   };
   clearTimeout(autoTimer);
   Sfx.init();
@@ -206,8 +224,9 @@ function finishQuiz() {
   const total = qs.questions.length, score = qs.score;
   Sfx.stopAmbience(1.2);
   setTimeout(() => Sfx.end(), 300);
-  const prevBest = progress.sessions.reduce((m, s) => Math.max(m, Math.round((s.score / s.total) * 100)), -1);
-  progress.sessions.push({ date: new Date().toISOString(), score, total });
+  const mine = (s) => (s.col || "monde") === COL && (s.cat || "all") === qs.cat;   // scores séparés par collection et catégorie
+  const prevBest = progress.sessions.filter(mine).reduce((m, s) => Math.max(m, Math.round((s.score / s.total) * 100)), -1);
+  progress.sessions.push({ date: new Date().toISOString(), score, total, col: COL, cat: qs.cat });
   if (progress.sessions.length > 200) progress.sessions = progress.sessions.slice(-200);
   saveQuiz(progress);
 
@@ -218,13 +237,15 @@ function finishQuiz() {
   Q("end-best").textContent = prevBest < 0 ? "Première partie enregistrée."
     : pct > prevBest ? `Nouveau record ! (avant : ${prevBest} %)` : `Meilleur résultat : ${prevBest} %`;
   // graphique des dernières parties
-  const last = progress.sessions.slice(-12);
+  const hist = progress.sessions.filter(mine);
+  const last = hist.slice(-12);
+  Q("end-cat").textContent = COLS[COL].title + (qs.cat !== "all" ? " · " + CATS[qs.cat].label : "");
   Q("end-chart").innerHTML = last.map((s, k) => {
     const p = Math.round((s.score / s.total) * 100), d = new Date(s.date);
     return `<div class="col${k === last.length - 1 ? " now" : ""}"><span class="v">${s.score}</span><div class="b" style="height:${Math.max(4, p)}%"></div>
       <span class="d">${d.getDate()}/${d.getMonth() + 1}</span></div>`;
   }).join("");
-  Q("end-total").textContent = `${progress.sessions.length} partie${progress.sessions.length > 1 ? "s" : ""} jouée${progress.sessions.length > 1 ? "s" : ""} au total`;
+  Q("end-total").textContent = `${hist.length} partie${hist.length > 1 ? "s" : ""} jouée${hist.length > 1 ? "s" : ""} dans cette série`;
   const uniq = [...new Map(qs.missed.map((b) => [b.id, b])).values()];
   Q("end-missed").innerHTML = uniq.length
     ? `<h3>À revoir</h3><div class="missed">${uniq.map((b) => `<div class="mb"><img src="${paysageUrls[b.id] || photoUrls[b.id]}" alt=""><span>${b.fr}</span></div>`).join("")}</div>
@@ -252,7 +273,9 @@ Q("btn-amb").onclick = () => {
   Q("btn-amb").style.visibility = isLocal("_ambiance", "file") ? "visible" : "hidden";
   if (Sfx.off) Sfx.stopAmbience(0.5); else { Sfx.init(); Sfx.startAmbience(); }
 };
-Q("btn-again").onclick = startQuiz;
+Q("btn-again").onclick = () => runQuiz(lastCat);
+document.querySelectorAll("#quiz-cat [data-cat]").forEach((b) => (b.onclick = () => runQuiz(b.dataset.cat)));
+Q("btn-cat-close").onclick = () => { Q("quiz-cat").hidden = true; if (!feed.hidden) scheduleAuto(); };
 Q("btn-end-home").onclick = refreshHome;
 document.addEventListener("visibilitychange", () => {
   if (!Sfx.ctx) return;

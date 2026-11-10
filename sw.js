@@ -1,6 +1,6 @@
 // Service worker : garde le code de l'appli pour un usage sans réseau.
 // (Les photos et chants sont stockés séparément par l'appli, cache "oiseaux-media-v1".)
-const SHELL = "oiseaux-app-v9";
+const SHELL = "oiseaux-app-v11";
 const FILES = ["./", "index.html", "style.css", "app.js", "quiz.js", "birds.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"];
 
@@ -15,6 +15,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return; // API Wikimedia : réseau direct
+  if (e.request.cache === "reload" || e.request.cache === "no-store") return;            // vérification de mise à jour : toujours le serveur
   if (url.pathname.includes("/photos/") || url.pathname.endsWith("/ambiance.mp3")) return; // vos fichiers : gérés par l'appli
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then((hit) => hit ||
