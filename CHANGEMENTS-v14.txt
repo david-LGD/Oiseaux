@@ -1,0 +1,92 @@
+CHANTS D'OISEAUX — VERSION 14
+=============================
+
+FICHIERS À TÉLÉVERSER SUR GITHUB (5)
+  index.html, app.js, quiz.js, style.css, sw.js
+  (birds.js, manifest.webmanifest et le dossier icons ne changent pas.)
+
+Après le téléversement : attendre une dizaine de minutes, puis
+Réglages > Vérifier les mises à jour. L'accueil doit afficher « Version 14 ».
+Vos photos, chants, scores et réglages sont conservés.
+
+
+CE QUI CHANGE
+-------------
+1. Identité visuelle
+   - Tous les emojis sont remplacés par un jeu de 21 icônes dessinées pour l'appli
+     (trait arrondi et touche dorée, dans l'esprit du logo), plus deux pastilles
+     de collection : le globe et le phare.
+   - Couleurs, espacements, arrondis et tailles de texte unifiés sur tous les écrans.
+   - Écran de démarrage animé d'une seconde ; logo animé sur l'accueil.
+   - Transitions douces à l'ouverture de chaque écran et de chaque fenêtre.
+   - Un toucher en dehors d'une fenêtre (réglages, aide, crédits, fiche) la ferme.
+
+2. Onde sonore
+   - Pendant chaque chant (défilement, quiz, carnet), 30 barres animées suivent
+     le son en temps réel : graves à gauche, aigus à droite.
+   - Réglage « Onde sonore pendant les chants » pour la couper.
+
+3. Quiz plus ludique
+   - Séries : « 3 d'affilée ! » puis « 5 d'affilée ! », avec animation et petit son ;
+     la série en cours s'affiche en haut de l'écran.
+   - La bonne réponse rebondit, une erreur fait trembler la photo.
+   - Fin de partie : médaille de bronze (dès 5/10), d'argent (dès 7/10) ou d'or
+     (dès 9/10) ; confettis à partir de 8/10.
+   - Les oiseaux qui viennent d'être maîtrisés sont montrés en fin de partie.
+
+4. Carnet d'ornithologue (bouton « Carnet » sur l'accueil)
+   - Les 30 oiseaux de la collection, groupés par continent (Monde) ou par
+     milieu (Bretagne).
+   - Maîtrisé = reconnu 3 fois de suite au quiz : photo en couleur, cadre doré.
+     Sinon : silhouette grise. Trois points montrent l'avancement. Une erreur
+     remet l'oiseau « à revoir ».
+   - Un toucher ouvre la fiche complète, avec le bouton « Écouter ».
+   - Barre « 12 / 30 maîtrisés » et compteur des médailles gagnées.
+   - Sur l'accueil, chaque carte de collection affiche son pourcentage de maîtrise.
+
+5. Mode d'emploi complété (carnet, séries, médailles, onde sonore).
+
+
+BUGS CORRIGÉS AU PASSAGE
+------------------------
+   - « Retélécharger les médias > tout depuis zéro » restait bloqué sur l'écran
+     de préparation (présent depuis la version 10).
+   - Hors ligne, « actualiser la page » échouait (présent depuis la version 11).
+     L'ouverture normale depuis l'icône n'était pas touchée.
+   - Mises à jour plus fiables : chaque fichier est repris du serveur, jamais
+     d'une ancienne copie gardée par le navigateur.
+   - « Réécouter » appuyé plusieurs fois de suite pouvait superposer deux chants.
+
+
+DONNÉES
+-------
+   - Mêmes clés de réglages et même cache des médias qu'avant. Une seule clé
+     ajoutée : « oiseaux-visu » (réglage de l'onde sonore).
+   - Maîtrise des oiseaux déjà joués : la version 13 ne notait pas les séries.
+     Un oiseau n'est donc compté « maîtrisé » d'office que s'il a été reconnu
+     au moins 3 fois sans jamais d'erreur. Les autres repartent de zéro :
+     3 bonnes réponses de suite suffisent.
+
+
+VÉRIFIÉ (téléphone simulé, navigateur de type Chrome, faux serveur Wikimedia)
+-----------------------------------------------------------------------------
+   87 vérifications automatiques, toutes réussies, aucune erreur JavaScript :
+   - mise à jour réelle 13 > 14 par le bouton : 108 fichiers en cache, scores,
+     réglages et crédits strictement identiques avant et après ;
+   - mises à jour suivantes (14 > 15 > 16), par le bouton puis automatique ;
+   - fonctionnement hors ligne après mise à jour (défilement, quiz, carnet) ;
+   - gestes du défilement, quiz, catégories Bretagne, ambiance, crédits,
+     retéléchargement complet, écrans de 320, 360 et 412 points de large.
+
+
+NON VÉRIFIÉ (à contrôler sur le téléphone)
+------------------------------------------
+   - Firefox pour Android : impossible de l'installer dans l'environnement de test.
+     Point à surveiller : l'onde sonore fait passer le chant par l'analyseur audio
+     du navigateur. Si un chant restait muet, décocher « Onde sonore pendant les
+     chants » dans les réglages rétablit la lecture simple de la version 13.
+   - Le rendu sonore : aucun son n'a pu être écouté (séries, médaille, fondus).
+   - L'aspect avec les vraies photos et les vrais chants : les captures utilisent
+     des images et un son de test, Wikimedia n'étant pas joignable d'ici.
+     L'onde sonore n'a donc été vue que sur un son de synthèse.
+   - La fluidité réelle sur le Xiaomi 15T Pro (animations, confettis).

@@ -11,23 +11,185 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Jeu d'icônes : trait arrondi + touche dorée, dans l'esprit du logo -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 6l12 12M18 6L6 18"/>
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12.5l4.5 4.5L19 7.5"/>
+      </symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.13 5.25L10.61 2.80L13.39 2.80L13.87 5.25L15.45 5.91L17.52 4.52L19.48 6.48L18.09 8.55L18.75 10.13L21.20 10.61L21.20 13.39L18.75 13.87L18.09 15.45L19.48 17.52L17.52 19.48L15.45 18.09L13.87 18.75L13.39 21.20L10.61 21.20L10.13 18.75L8.55 18.09L6.48 19.48L4.52 17.52L5.91 15.45L5.25 13.87L2.80 13.39L2.80 10.61L5.25 10.13L5.91 8.55L4.52 6.48L6.48 4.52L8.55 5.91z"/>
+        <circle cx="12" cy="12" r="2.9" style="fill:var(--ic2,#e9b949);stroke:none"/>
+      </symbol>
+      <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 7c-1.8-1.3-4.4-1.8-7-1.3v12c2.6-.5 5.2 0 7 1.3 1.8-1.3 4.4-1.8 7-1.3v-12c-2.6-.5-5.2 0-7 1.3z"/>
+        <path d="M12 7v12"/>
+        <path d="M14.6 9.6c.8-.4 1.6-.6 2.4-.7" style="stroke:var(--ic2,#e9b949)"/>
+        <path d="M14.6 12.8c.8-.4 1.6-.6 2.4-.7" style="stroke:var(--ic2,#e9b949)"/>
+      </symbol>
+      <symbol id="i-headphones" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5.5 14v-2a6.5 6.5 0 0 1 13 0v2"/>
+        <rect x="3.5" y="13.2" width="4.2" height="6.8" rx="1.7" style="fill:var(--ic2,#e9b949);stroke:none"/>
+        <rect x="16.3" y="13.2" width="4.2" height="6.8" rx="1.7" style="fill:var(--ic2,#e9b949);stroke:none"/>
+      </symbol>
+      <symbol id="i-feed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="3.2" width="12" height="14.2" rx="3"/>
+        <path d="M9 20.8h6"/>
+        <path d="M10.6 7.6v5.4l4.4-2.7z" style="fill:var(--ic2,#e9b949);stroke:var(--ic2,#e9b949);stroke-width:1.2"/>
+      </symbol>
+      <symbol id="i-notebook" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6.5" y="3.5" width="12" height="17" rx="2.5"/>
+        <path d="M4.5 8h3M4.5 12h3M4.5 16h3"/>
+        <path d="M12.8 3.6h3.6v6.2l-1.8-1.4-1.8 1.4z" style="fill:var(--ic2,#e9b949);stroke:none"/>
+      </symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 10v4h3l4.5 3.8V6.2L7 10z"/>
+        <path d="M15.5 9.2a4 4 0 0 1 0 5.6"/>
+        <path d="M18.2 6.6a7.8 7.8 0 0 1 0 10.8" style="stroke:var(--ic2,#e9b949)"/>
+      </symbol>
+      <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 10v4h3l4.5 3.8V6.2L7 10z"/>
+        <path d="M16 9.5l5 5M21 9.5l-5 5" style="stroke:var(--ic2,#e9b949)"/>
+      </symbol>
+      <symbol id="i-replay" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.44 5.78v4.66h4.67"/>
+        <path d="M5.4 14.33a7 7 0 1 0 1.66-7.28L3.44 10.44"/>
+        <circle cx="12" cy="12" r="1.7" style="fill:var(--ic2,#e9b949);stroke:none"/>
+      </symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.56 5.78v4.66h-4.67M3.44 18.22v-4.66h4.67"/>
+        <path d="M5.4 9.67a7 7 0 0 1 11.55-2.61l3.61 3.38M3.44 13.56l3.61 3.39a7 7 0 0 0 11.55-2.62"/>
+      </symbol>
+      <symbol id="i-tree" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7.2 13.8a4.1 4.1 0 0 1-1-7.5 5.9 5.9 0 0 1 11.6 0 4.1 4.1 0 0 1-1 7.5z"/>
+        <path d="M12 13.8v6.7M9 20.5h6"/>
+        <circle cx="12" cy="8.6" r="1.5" style="fill:var(--ic2,#e9b949);stroke:none"/>
+      </symbol>
+      <symbol id="i-waves" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 9.5c1.4-1.7 2.8-1.7 4.25 0s2.85 1.7 4.25 0 2.8-1.7 4.25 0 2.85 1.7 4.25 0"/>
+        <path d="M3.5 15.5c1.4-1.7 2.8-1.7 4.25 0s2.85 1.7 4.25 0 2.8-1.7 4.25 0 2.85 1.7 4.25 0" style="stroke:var(--ic2,#e9b949)"/>
+      </symbol>
+      <symbol id="i-migr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 9.5c2.3-2.3 5.3-2.2 8.500 1 3.200-3.200 6.200-3.300 8.500-1"/>
+        <path d="M7 17.5h9.5M13.500 14.500l3 3-3 3" style="stroke:var(--ic2,#e9b949)"/>
+      </symbol>
+      <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 11.5L12 5l7.500 6.500"/>
+        <path d="M6.500 10.200v9.300h11v-9.300"/>
+        <rect x="10.250" y="14" width="3.500" height="5.500" rx="1" style="fill:var(--ic2,#e9b949);stroke:none"/>
+      </symbol>
+      <symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.4 3c.3 2.900 4.600 5 4.600 9.700a5 5 0 0 1-10 0c0-2 1-3.400 1.900-4.300.200 1.300.700 2.100 1.500 2.500-.300-2.900.500-5.900 2-7.900z"/>
+        <path d="M12 12.600c1 1 1.700 1.800 1.700 2.800a1.700 1.700 0 0 1-3.400 0c0-1 .700-1.800 1.700-2.800z" style="fill:var(--ic2,#e9b949);stroke:none"/>
+      </symbol>
+      <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8.500"/>
+        <path d="M12 11.200v5.300"/>
+        <circle cx="12" cy="7.900" r="1.250" style="fill:var(--ic2,#e9b949);stroke:none"/>
+      </symbol>
+      <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4v10.500M7.500 10.500L12 15l4.500-4.500"/>
+        <path d="M5 19.500h14" style="stroke:var(--ic2,#e9b949)"/>
+      </symbol>
+      <symbol id="i-play" viewBox="0 0 24 24">
+        <path d="M8.500 5.800v12.400l10-6.200z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24">
+        <rect x="7" y="7" width="10" height="10" rx="2.200" fill="currentColor"/>
+      </symbol>
+      <symbol id="i-star" viewBox="0 0 24 24">
+        <polygon points="12.0,3.4 14.3,8.8 20.2,9.3 15.7,13.2 17.1,19.0 12.0,15.900 6.900,19.0 8.300,13.200 3.800,9.300 9.700,8.800" style="fill:var(--ic2,#e9b949);stroke:var(--ic2,#e9b949);stroke-width:1.400;stroke-linejoin:round"/>
+      </symbol>
+
+      <!-- Pastilles des collections, aux couleurs du logo -->
+      <symbol id="b-globe" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="22" fill="#1d3a28"/>
+        <circle cx="24" cy="24" r="14.5" fill="#3d8a59"/>
+        <g fill="none" stroke="#e9b949" stroke-width="1.9" stroke-linecap="round">
+          <ellipse cx="24" cy="24" rx="6.2" ry="14.5"/>
+          <path d="M9.500 24h29"/>
+          <path d="M12 16.800c3.400 1.500 7.600 2.300 12 2.300s8.600-.800 12-2.300"/>
+          <path d="M12 31.200c3.400-1.500 7.600-2.300 12-2.300s8.600.800 12 2.300"/>
+        </g>
+        <circle cx="24" cy="24" r="14.5" fill="none" stroke="#e9b949" stroke-width="1.9"/>
+      </symbol>
+      <symbol id="b-sea" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="22" fill="#1d3a28"/>
+        <polygon points="21,15 27,15 29.200,33 18.800,33" fill="#f3f1ea"/>
+        <polygon points="20.200,21.500 27.800,21.500 28.400,26.500 19.600,26.500" fill="#f07832"/>
+        <rect x="21.300" y="10" width="5.400" height="5" rx="1" fill="#e9b949"/>
+        <polygon points="20.200,10 24,6.200 27.800,10" fill="#f07832"/>
+        <path d="M8.500 33.500c2.600-2.600 5.200-2.600 7.750 0s5.150 2.600 7.750 0 5.200-2.600 7.750 0 5.150 2.600 7.750 0" fill="none" stroke="#e9b949" stroke-width="2.800" stroke-linecap="round"/>
+        <path d="M13 39c1.900-1.900 3.700-1.900 5.500 0s3.700 1.900 5.500 0 3.700-1.900 5.500 0 3.700 1.900 5.500 0" fill="none" stroke="#8fd694" stroke-width="2.400" stroke-linecap="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- Écran de démarrage (1 seconde) -->
+  <div id="splash" aria-hidden="true">
+    <svg class="logo splash-logo" viewBox="0 0 100 100" aria-hidden="true">
+        <rect width="100" height="100" rx="24" fill="#0b1a12"/>
+        <circle cx="50" cy="50" r="42" fill="#1d3a28"/>
+        <g class="lg-bird">
+          <polygon points="30,50 14,40 22,58" fill="#e9b949"/>
+          <ellipse cx="49" cy="53" rx="21" ry="15" fill="#e9b949"/>
+          <circle cx="66" cy="38" r="10" fill="#e9b949"/>
+          <polygon points="75,35 86,39 75,42" fill="#f07832"/>
+          <polygon points="36,48 58,46 50,62" fill="#c48c28"/>
+          <circle cx="68" cy="36" r="2" fill="#0b1a12"/>
+          <path d="M45 67l-2 9M55 67l2 9" stroke="#f07832" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </g>
+        <g class="lg-note n1" fill="#f3f1ea"><ellipse cx="79.5" cy="26" rx="2.6" ry="2"/><rect x="80.6" y="16" width="1.5" height="10"/></g>
+        <g class="lg-note n2" fill="#f3f1ea"><ellipse cx="87.5" cy="34" rx="2.6" ry="2"/><rect x="88.6" y="24" width="1.5" height="10"/></g>
+      </svg>
+    <p>Chants d'oiseaux</p>
+  </div>
+
   <!-- Écran d'accueil -->
   <section id="home" class="screen">
     <div class="home-inner">
-      <img src="icons/icon-192.png" alt="" class="home-logo">
+      <svg class="logo home-logo" viewBox="0 0 100 100" aria-hidden="true">
+        <rect width="100" height="100" rx="24" fill="#0b1a12"/>
+        <circle cx="50" cy="50" r="42" fill="#1d3a28"/>
+        <g class="lg-bird">
+          <polygon points="30,50 14,40 22,58" fill="#e9b949"/>
+          <ellipse cx="49" cy="53" rx="21" ry="15" fill="#e9b949"/>
+          <circle cx="66" cy="38" r="10" fill="#e9b949"/>
+          <polygon points="75,35 86,39 75,42" fill="#f07832"/>
+          <polygon points="36,48 58,46 50,62" fill="#c48c28"/>
+          <circle cx="68" cy="36" r="2" fill="#0b1a12"/>
+          <path d="M45 67l-2 9M55 67l2 9" stroke="#f07832" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </g>
+        <g class="lg-note n1" fill="#f3f1ea"><ellipse cx="79.5" cy="26" rx="2.6" ry="2"/><rect x="80.6" y="16" width="1.5" height="10"/></g>
+        <g class="lg-note n2" fill="#f3f1ea"><ellipse cx="87.5" cy="34" rx="2.6" ry="2"/><rect x="88.6" y="24" width="1.5" height="10"/></g>
+      </svg>
       <h1>Chants d'oiseaux</h1>
       <p class="version-badge">Version <span class="app-version"></span></p>
       <div class="cols">
-        <button class="col-btn" data-col="monde"><span class="col-ic">🌍</span><b>Oiseaux du monde</b><span class="col-state"></span></button>
-        <button class="col-btn" data-col="bretagne"><span class="col-ic">🌊</span><b>Oiseaux de Bretagne</b><span class="col-state"></span></button>
+        <button class="col-btn" data-col="monde">
+          <svg class="col-ic" aria-hidden="true"><use href="#b-globe"/></svg>
+          <b>Oiseaux du monde</b>
+          <span class="col-state"></span>
+          <span class="col-bar"><i></i></span>
+        </button>
+        <button class="col-btn" data-col="bretagne">
+          <svg class="col-ic" aria-hidden="true"><use href="#b-sea"/></svg>
+          <b>Oiseaux de Bretagne</b>
+          <span class="col-state"></span>
+          <span class="col-bar"><i></i></span>
+        </button>
       </div>
       <p class="home-sub"><span id="home-sub"></span><br>Regardez, écoutez, devinez.</p>
-      <button id="btn-start" class="btn primary">Défilement des oiseaux</button>
-      <button id="btn-quiz" class="btn quiz">🎧 Quiz : quel oiseau chante ?</button>
+      <button id="btn-start" class="btn primary"><svg class="ic" aria-hidden="true"><use href="#i-feed"/></svg> Défilement des oiseaux</button>
+      <button id="btn-quiz" class="btn quiz"><svg class="ic" aria-hidden="true"><use href="#i-headphones"/></svg> Quiz : quel oiseau chante ?</button>
       <button id="btn-prepare" class="btn primary" hidden>Préparer l'appli</button>
       <div class="home-row">
-        <button id="btn-home-help" class="btn">📖 Mode d'emploi</button>
-        <button id="btn-home-settings" class="btn">⚙️ Réglages</button>
+        <button id="btn-home-carnet" class="tilebtn"><svg class="ic" aria-hidden="true"><use href="#i-notebook"/></svg><span>Carnet</span></button>
+        <button id="btn-home-help" class="tilebtn"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span>Mode d'emploi</span></button>
+        <button id="btn-home-settings" class="tilebtn"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg><span>Réglages</span></button>
       </div>
       <p id="home-note" class="home-note"></p>
       <p class="author">Créé par David LGD, de Betton</p>
@@ -52,27 +214,29 @@
   <!-- Quiz -->
   <section id="quiz" hidden>
     <header class="qhead">
-      <button id="btn-quiz-quit" class="qbtn" aria-label="Quitter">✕</button>
+      <button id="btn-quiz-quit" class="qbtn" aria-label="Quitter"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
       <div class="qinfo"><b id="quiz-count"></b><span id="quiz-score"></span></div>
-      <button id="btn-amb" class="qbtn" aria-label="Ambiance sonore">🔊</button>
+      <button id="btn-amb" class="qbtn" aria-label="Ambiance sonore"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg></button>
     </header>
     <div id="quiz-tiles"></div>
+    <div id="streak-toast" hidden></div>
     <footer class="qfoot">
       <p id="quiz-feedback"></p>
+      <canvas id="quiz-visu" class="visu"></canvas>
       <div class="bar"><div id="quiz-bar"></div></div>
-      <button id="btn-replay" class="btn">🔁 Réécouter le chant</button>
+      <button id="btn-replay" class="btn"><svg class="ic" aria-hidden="true"><use href="#i-replay"/></svg> Réécouter le chant</button>
     </footer>
   </section>
 
-  <section id="quiz-cat" class="sheet" hidden>
+  <section id="quiz-cat" class="sheet" data-close="btn-cat-close" hidden>
     <div class="sheet-inner">
       <h2>Quiz : quels oiseaux ?</h2>
       <button class="btn primary" data-cat="all">Tous les oiseaux de Bretagne</button>
-      <button class="btn" data-cat="terre">🌳 Oiseaux de terre</button>
-      <button class="btn" data-cat="mer">🌊 Oiseaux marins</button>
-      <button class="btn" data-cat="migr">✈️ Migrateurs</button>
-      <button class="btn" data-cat="sed">🏠 Sédentaires</button>
-      <button id="btn-cat-close" class="btn">Annuler</button>
+      <button class="btn" data-cat="terre"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg> Oiseaux de terre</button>
+      <button class="btn" data-cat="mer"><svg class="ic" aria-hidden="true"><use href="#i-waves"/></svg> Oiseaux marins</button>
+      <button class="btn" data-cat="migr"><svg class="ic" aria-hidden="true"><use href="#i-migr"/></svg> Migrateurs</button>
+      <button class="btn" data-cat="sed"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg> Sédentaires</button>
+      <button id="btn-cat-close" class="btn ghost">Annuler</button>
     </div>
   </section>
 
@@ -80,15 +244,52 @@
     <div class="end-inner">
       <p class="end-label">Résultat</p>
       <p id="end-cat" class="small"></p>
+      <div id="end-medal"></div>
       <p id="end-score"></p>
       <p id="end-msg"></p>
       <p id="end-best"></p>
+      <div id="end-new"></div>
       <h3>Vos dernières parties</h3>
       <div id="end-chart"></div>
       <p id="end-total" class="small"></p>
       <div id="end-missed"></div>
-      <button id="btn-again" class="btn primary">Rejouer</button>
-      <button id="btn-end-home" class="btn">Accueil</button>
+      <button id="btn-again" class="btn primary"><svg class="ic" aria-hidden="true"><use href="#i-replay"/></svg> Rejouer</button>
+      <div class="home-row two">
+        <button id="btn-end-carnet" class="btn"><svg class="ic" aria-hidden="true"><use href="#i-notebook"/></svg> Carnet</button>
+        <button id="btn-end-home" class="btn">Accueil</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Carnet d'ornithologue -->
+  <section id="carnet" class="screen" hidden>
+    <div class="carnet-inner">
+      <header class="chead">
+        <button id="btn-carnet-close" class="qbtn" aria-label="Accueil"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+        <div class="ctitle"><b>Carnet d'ornithologue</b><span id="carnet-col"></span></div>
+        <span class="qbtn spacer"></span>
+      </header>
+      <div class="cprog">
+        <div class="cprog-top"><b id="carnet-count"></b><span id="carnet-medals"></span></div>
+        <div class="bar big"><div id="carnet-bar"></div></div>
+        <p class="small">Un oiseau est maîtrisé quand vous le reconnaissez 3 fois de suite au quiz. Une erreur, et il est à revoir.</p>
+      </div>
+      <div id="carnet-grid"></div>
+      <button id="btn-carnet-quiz" class="btn quiz"><svg class="ic" aria-hidden="true"><use href="#i-headphones"/></svg> Jouer au quiz</button>
+    </div>
+  </section>
+
+  <section id="fiche" class="sheet" data-close="btn-fiche-close" hidden>
+    <div class="sheet-inner scroll fiche">
+      <div class="fiche-photo"><img id="fiche-bg" class="bg" alt=""><img id="fiche-img" class="fg" alt=""><span id="fiche-badge" hidden><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg> Maîtrisé</span></div>
+      <h2 id="fiche-name"></h2>
+      <p id="fiche-latin" class="latin"></p>
+      <dl id="fiche-dl" class="facts"></dl>
+      <p id="fiche-anecdote" class="anecdote"></p>
+      <p id="fiche-stats" class="small"></p>
+      <canvas id="fiche-visu" class="visu" hidden></canvas>
+      <button id="btn-fiche-listen" class="btn quiz"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg> Écouter</button>
+      <button id="btn-fiche-close" class="btn ghost">Fermer</button>
     </div>
   </section>
 
@@ -97,21 +298,22 @@
 
   <!-- Fiche affichée pendant le chant -->
   <div id="card" hidden>
+    <canvas id="card-visu" class="visu"></canvas>
     <div class="card-progress"><div id="card-bar"></div></div>
     <h2 id="card-name"></h2>
-    <p id="card-latin"></p>
-    <dl id="card-dl"></dl>
-    <p id="card-anecdote"></p>
+    <p id="card-latin" class="latin"></p>
+    <dl id="card-dl" class="facts"></dl>
+    <p id="card-anecdote" class="anecdote"></p>
     <p id="card-nosound" hidden>Chant indisponible pour cet oiseau.</p>
   </div>
 
   <div id="hint" hidden>Touchez une photo pour écouter son chant</div>
-  <button id="btn-feed-home" class="round left" hidden aria-label="Accueil">✕</button>
-  <button id="btn-menu" class="round" hidden aria-label="Réglages">⚙️</button>
+  <button id="btn-feed-home" class="round left" hidden aria-label="Accueil"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+  <button id="btn-menu" class="round" hidden aria-label="Réglages"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
 
-  <!-- Menu -->
-  <section id="menu" class="sheet" hidden>
-    <div class="sheet-inner">
+  <!-- Réglages -->
+  <section id="menu" class="sheet" data-close="btn-close-menu" hidden>
+    <div class="sheet-inner scroll">
       <h2>Réglages</h2>
       <label class="row">Défilement toutes les
         <select id="sel-speed">
@@ -124,6 +326,9 @@
       <label class="row">Animation des photos (zoom lent)
         <input type="checkbox" id="chk-kb" checked>
       </label>
+      <label class="row">Onde sonore pendant les chants
+        <input type="checkbox" id="chk-visu" checked>
+      </label>
       <div id="row-amb">
         <label class="row">Ambiance sonore
           <input type="checkbox" id="chk-amb" checked>
@@ -133,48 +338,57 @@
         </label>
         <p id="amb-note" class="small"></p>
       </div>
-      <button id="btn-menu-quiz" class="btn quiz">🎧 Jouer au quiz</button>
-      <button id="btn-credits" class="btn">Crédits photos et chants</button>
-      <button id="btn-export" class="btn">Exporter les photos (pour recadrage)</button>
-      <button id="btn-update" class="btn">Retélécharger les médias</button>
-      <button id="btn-menu-help" class="btn">📖 Mode d'emploi</button>
-      <button id="btn-check-update" class="btn">🔄 Vérifier les mises à jour</button>
+      <button id="btn-menu-quiz" class="btn quiz"><svg class="ic" aria-hidden="true"><use href="#i-headphones"/></svg> Jouer au quiz</button>
+      <button id="btn-credits" class="btn"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> Crédits photos et chants</button>
+      <button id="btn-export" class="btn"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Exporter les photos (pour recadrage)</button>
+      <button id="btn-update" class="btn"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg> Retélécharger les médias</button>
+      <button id="btn-menu-help" class="btn"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg> Mode d'emploi</button>
+      <button id="btn-check-update" class="btn"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg> Vérifier les mises à jour</button>
       <button id="btn-close-menu" class="btn primary">Fermer</button>
       <p class="author">Chants d'oiseaux · version <span class="app-version"></span><br>Créé par David LGD, de Betton</p>
     </div>
   </section>
 
-  <section id="help" class="sheet" hidden>
+  <section id="help" class="sheet" data-close="btn-close-help" hidden>
     <div class="sheet-inner scroll help">
-      <h2>📖 Mode d'emploi</h2>
+      <h2><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg> Mode d'emploi</h2>
 
       <h3>1. Choisir une collection</h3>
-      <p>Sur l'accueil, touchez <b>🌍 Oiseaux du monde</b> ou <b>🌊 Oiseaux de Bretagne</b>. La première fois, touchez <b>Préparer l'appli</b>, en Wi-Fi : photos et chants sont téléchargés une fois pour toutes. Ensuite, l'appli fonctionne <b>sans réseau</b>.</p>
+      <p>Sur l'accueil, touchez <b>Oiseaux du monde</b> ou <b>Oiseaux de Bretagne</b>. La première fois, touchez <b>Préparer l'appli</b>, en Wi-Fi : photos et chants sont téléchargés une fois pour toutes. Ensuite, l'appli fonctionne <b>sans réseau</b>. Chaque carte indique votre pourcentage d'oiseaux maîtrisés.</p>
 
       <h3>2. Le défilement</h3>
       <ul>
         <li>Les oiseaux défilent tout seuls ; <b>glissez</b> vers le haut ou le bas pour aller plus vite.</li>
-        <li><b>Touchez une photo</b> : le défilement s'arrête, le chant joue 10 secondes et la fiche de l'oiseau s'affiche.</li>
+        <li><b>Touchez une photo</b> : le défilement s'arrête, le chant joue 10 secondes et la fiche de l'oiseau s'affiche, avec l'<b>onde sonore</b> du chant en direct.</li>
         <li><b>Touchez à nouveau</b> pour passer à l'oiseau suivant ; sinon, il arrive tout seul après le chant.</li>
-        <li><b>✕</b> en haut à gauche : retour à l'accueil. <b>⚙️</b> en haut à droite : réglages.</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg> en haut à gauche : retour à l'accueil. <svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg> en haut à droite : réglages.</li>
       </ul>
 
       <h3>3. Le quiz</h3>
       <ul>
-        <li>Trois photos, un chant : touchez l'oiseau qui chante. <b>🔁 Réécouter</b> rejoue le chant.</li>
+        <li>Trois photos, un chant : touchez l'oiseau qui chante. <svg class="ic" aria-hidden="true"><use href="#i-replay"/></svg> <b>Réécouter</b> rejoue le chant.</li>
         <li>La réponse reste affichée 5 secondes avec le chant (vert : bonne réponse, rouge : votre choix) ; touchez l'écran pour passer plus vite.</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#i-flame"/></svg> <b>Séries</b> : 3 puis 5 bonnes réponses d'affilée sont saluées.</li>
         <li>En Bretagne, choisissez une catégorie : terre, marins, migrateurs, sédentaires ou tous.</li>
-        <li>À la fin : votre score, votre record et vos progrès. Les oiseaux <b>« À revoir »</b> sont ceux que vous avez ratés : ils reviendront plus souvent.</li>
+        <li>À la fin : votre score, une <b>médaille</b> (bronze dès 5/10, argent dès 7/10, or dès 9/10), des confettis à partir de 8/10, votre record et vos progrès. Les oiseaux <b>« À revoir »</b> sont ceux que vous avez ratés : ils reviendront plus souvent.</li>
       </ul>
 
-      <h3>4. Les réglages ⚙️</h3>
+      <h3>4. Le carnet d'ornithologue</h3>
       <ul>
-        <li><b>Vitesse</b> du défilement, <b>animation des photos</b> (zoom lent), <b>ambiance sonore</b> et son <b>niveau</b> (0 % par défaut).</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#i-notebook"/></svg> <b>Carnet</b>, sur l'accueil : les 30 oiseaux de la collection.</li>
+        <li>Un oiseau est <b>maîtrisé</b> (en couleur) quand vous le reconnaissez <b>3 fois de suite</b> au quiz ; les trois points sous sa photo montrent où vous en êtes. Une erreur, et il redevient une silhouette grise, à revoir.</li>
+        <li>Touchez un oiseau pour ouvrir sa fiche complète et <b>écouter</b> son chant.</li>
+      </ul>
+
+      <h3>5. Les réglages</h3>
+      <ul>
+        <li><b>Vitesse</b> du défilement, <b>animation des photos</b> (zoom lent), <b>onde sonore</b>, <b>ambiance sonore</b> et son <b>niveau</b> (0 % par défaut).</li>
         <li><b>Crédits</b> : auteurs et licences des photos et des chants. Si un chant est faux, touchez « Ce n'est pas le bon chant ».</li>
         <li><b>Vérifier les mises à jour</b> : installe la dernière version sans rien effacer.</li>
+        <li>Si un chant reste muet sur votre téléphone, décochez <b>Onde sonore</b> : la lecture repasse en mode simple.</li>
       </ul>
 
-      <h3>5. Installer sur son téléphone</h3>
+      <h3>6. Installer sur son téléphone</h3>
       <p>Ouvrez l'adresse ci-dessous, puis menu du navigateur › <b>Ajouter à l'écran d'accueil</b> (ou « Installer »).</p>
 
       <h3>Partager l'appli</h3>
@@ -185,7 +399,7 @@
     </div>
   </section>
 
-  <section id="credits" class="sheet" hidden>
+  <section id="credits" class="sheet" data-close="btn-close-credits" hidden>
     <div class="sheet-inner scroll">
       <h2>Crédits</h2>
       <p class="small">Application créée par David LGD, de Betton.<br>Photos et enregistrements issus de Wikimedia Commons, sous licences libres. Usage personnel et pédagogique.</p>
