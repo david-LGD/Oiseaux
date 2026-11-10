@@ -15,7 +15,7 @@ const MAX_AUDIO_BYTES = 8e6;
 // enregistrements à écarter : prononciations du nom, voix humaines, extraits radio…
 const BAD_AUDIO = /^file:\s*(en|fr|de|nl|es|it|pt|sv|pl|ru)(-[a-z]{2})?-|ll-q\d+|pronunciation|prononciation|aussprache|spoken|voice|narrat|wikipedia|podcast|radio|interview/i;
 
-const APP_VERSION = "11";      // à augmenter à chaque mise à jour (avec sw.js)
+const APP_VERSION = "13";      // à augmenter à chaque mise à jour (avec sw.js)
 const $ = (id) => document.getElementById(id);
 document.querySelectorAll(".app-version").forEach((e) => (e.textContent = APP_VERSION));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -399,6 +399,7 @@ function appendRound() {
   for (const b of order) {
     const s = document.createElement("div");
     s.className = "slide"; s.dataset.id = b.id;
+    s.style.setProperty("--kb", "kb" + (1 + Math.floor(Math.random() * 4)));   // sens de l'effet Ken Burns
     s.innerHTML = `<img class="bg" alt="" draggable="false" decoding="async"><img class="fg" alt="" draggable="false" decoding="async">
       <span class="zone">${zoneLabel(b)}</span><div class="label"><b>${b.fr}</b><i>${b.latin}</i></div>`;
     s.querySelectorAll("img").forEach((im) => (im.src = portraitUrls[b.id] || photoUrls[b.id]));
@@ -429,7 +430,7 @@ async function startFeed() {
   pool = activeBirds().filter((b) => photoUrls[b.id] || portraitUrls[b.id]);
   if (!pool.length) { meta.preparedBy[COL] = false; saveMeta(); refreshHome(); return; }
   feed.innerHTML = ""; appendRound(); appendRound();
-  show("feed"); feed.scrollTop = 0;
+  show("feed"); feed.scrollTop = 0; markLive();
   requestWakeLock();
   if (typeof Sfx !== "undefined") { Sfx.init(); Sfx.startAmbience(); }
   $("hint").hidden = false;
@@ -449,7 +450,12 @@ function advance() {
   feed.scrollTo({ top: idx * slideH(), behavior: "smooth" });
 }
 let settleTimer = null;
+function markLive() {                       // l'animation ne tourne que sur la photo visible et ses voisines
+  const i = currentIndex(), sl = slides();
+  for (let k = 0; k < sl.length; k++) sl[k].classList.toggle("live", Math.abs(k - i) <= 1);
+}
 function onSettle() {
+  markLive();
   // élagage : on garde le DOM léger lors des longues sessions
   if (!playing && slides().length > 120 && currentIndex() > 70) {
     const n = pool.length, top = feed.scrollTop;
@@ -553,8 +559,10 @@ document.addEventListener("visibilitychange", () => {
 $("sel-speed").value = String(speed);
 $("sel-speed").onchange = (e) => { speed = +e.target.value; localStorage.setItem(SPEED_KEY, speed); };
 function ambNote() {
+  const v = typeof Sfx !== "undefined" ? Sfx.vol : 0;
   $("amb-note").textContent = isLocal("_ambiance", "file")
-    ? "Réglez le niveau en écoutant : l'ambiance joue pendant que ce menu est ouvert."
+    ? (v <= 0 ? "Ambiance coupée (niveau 0 %). Montez le curseur pour l'entendre."
+              : "Réglez le niveau en écoutant : l'ambiance joue pendant que ce menu est ouvert.")
     : "Aucun fichier ambiance.mp3 trouvé. Déposez-le à la racine du dépôt GitHub, puis rouvrez l'appli avec du réseau.";
 }
 let menuFromHome = false;
@@ -577,10 +585,15 @@ $("btn-feed-home").onclick = () => {          // retour à l'accueil depuis le d
   clearTimeout(autoTimer);
   refreshHome();
 };
+const KB_KEY = "oiseaux-kenburns";
+document.body.classList.toggle("kb", localStorage.getItem(KB_KEY) !== "0");
+$("chk-kb").checked = document.body.classList.contains("kb");
+$("chk-kb").onchange = (e) => { document.body.classList.toggle("kb", e.target.checked); localStorage.setItem(KB_KEY, e.target.checked ? "1" : "0"); };
 $("chk-amb").onchange = (e) => { if (typeof Sfx !== "undefined") Sfx.setOff(!e.target.checked); };
 $("rng-amb").oninput = (e) => {
   const v = +e.target.value; $("val-amb").textContent = v + " %";
   if (typeof Sfx !== "undefined") Sfx.setVol(v / 100);
+  ambNote();
 };
 $("btn-close-menu").onclick = () => {
   $("menu").hidden = true; menuOpen = false;
@@ -699,6 +712,14 @@ async function checkUpdate() {
   }
 }
 $("btn-check-update").onclick = checkUpdate;
+
+/* ---------- Mode d'emploi ---------- */
+$("btn-home-help").onclick = () => { menuFromHome = true; $("help").hidden = false; };
+$("btn-menu-help").onclick = () => { $("menu").hidden = true; $("help").hidden = false; };
+$("btn-close-help").onclick = () => {
+  $("help").hidden = true; menuOpen = false;
+  if (menuFromHome) { if (typeof Sfx !== "undefined") Sfx.stopAmbience(0.6); } else scheduleAuto();
+};
 
 /* ---------- Chant incorrect : en chercher un autre ---------- */
 async function otherSong(id) {

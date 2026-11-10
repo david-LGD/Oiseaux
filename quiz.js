@@ -6,6 +6,8 @@ const AMB_KEY = "oiseaux-ambiance-off";
 const QUIZ_LEN = 10;
 const SOLUTION_MS = 5000;      // solution visible + chant, puis groupe suivant (ou toucher)
 const AMB_VOL_KEY = "oiseaux-amb-vol";
+// version 13 : l'ambiance repart à 0 (coupée) une fois, puis le réglage choisi est conservé
+if (!localStorage.getItem("oiseaux-amb-reset13")) { localStorage.setItem(AMB_VOL_KEY, "0"); localStorage.setItem("oiseaux-amb-reset13", "1"); }
 
 /* ---------- Progression ---------- */
 function loadQuiz() { try { return JSON.parse(localStorage.getItem(QUIZ_KEY)) || { sessions: [], birds: {} }; } catch { return { sessions: [], birds: {} }; } }
@@ -15,10 +17,12 @@ let progress = loadQuiz();
 /* ---------- Sons (Web Audio) ---------- */
 const Sfx = {
   ctx: null, amb: null, off: localStorage.getItem(AMB_KEY) === "1",
-  vol: +(localStorage.getItem(AMB_VOL_KEY) || 0.06),        // niveau relatif aux chants (6 % par défaut)
+  vol: +(localStorage.getItem(AMB_VOL_KEY) || 0),           // niveau relatif aux chants (0 = coupé, par défaut)
   setVol(v) {
     this.vol = v; localStorage.setItem(AMB_VOL_KEY, String(v));
+    if (v <= 0) { this.stopAmbience(0.3); return; }
     if (this.amb && !this.amb.fading) this.amb.a.volume = v;
+    else if (!this.amb) { this.init(); this.startAmbience(); }   // on monte le curseur : l'ambiance démarre
   },
   init() {
     if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -41,7 +45,7 @@ const Sfx = {
           this.tone(1568, 0.64, 1.6, "sine", 0.06); },                                                    // fin du quiz
   // ambiance : votre fichier ambiance.mp3 déposé sur GitHub (joué en boucle)
   async startAmbience() {
-    if (this.off || this.amb || !isLocal("_ambiance", "file")) return;
+    if (this.off || this.amb || this.vol <= 0 || !isLocal("_ambiance", "file")) return;
     const r = await (await caches.open(MEDIA_CACHE)).match(localKey("_ambiance", "file"));
     if (!r || this.amb) return;
     const url = URL.createObjectURL(await r.blob());

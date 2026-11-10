@@ -38,12 +38,23 @@ h1 { font-size: 2rem; margin-bottom: 10px; }
 /* premier plan : la photo entière, jamais coupée, légèrement remontée */
 .slide img.fg { object-fit: contain; object-position: center 40%; transition: transform 10s linear;
   filter: drop-shadow(0 10px 30px #0008); }
-.slide.playing img.fg { transform: scale(1.06); }
+/* Effet Ken Burns : zoom et panoramique lents, sens variable d'une photo à l'autre */
+@keyframes kb1 { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.14) translate(-3%, -2%); } }
+@keyframes kb2 { from { transform: scale(1.14) translate(3%, -2%); } to { transform: scale(1) translate(0, 0); } }
+@keyframes kb3 { from { transform: scale(1.02) translate(-3%, 2%); } to { transform: scale(1.15) translate(2%, -2%); } }
+@keyframes kb4 { from { transform: scale(1.15) translate(0, 3%); } to { transform: scale(1.03) translate(0, -2%); } }
+body.kb .slide.live img.fg { animation: var(--kb) 14s ease-in-out infinite alternate; }
+body.kb .slide.live img.bg { animation: var(--kb) 14s ease-in-out infinite alternate; }
+.slide.playing img { animation-play-state: paused !important; }
+/* quiz : léger zoom sur les trois photos */
+@keyframes kbTile { from { transform: scale(1); } to { transform: scale(1.09); } }
+body.kb .tile img.fg, body.kb .tile img.cover { animation: kbTile 7s ease-in-out infinite alternate; }
+.tile.revealed img { animation-play-state: paused !important; }
 .slide .label { position: absolute; left: 0; right: 0; bottom: 0; padding: 60px 20px calc(28px + env(safe-area-inset-bottom));
   background: linear-gradient(transparent, #000c); pointer-events: none; }
 .slide .label b { display: block; font-size: 1.4rem; }
 .slide .label i { opacity: .75; font-size: .95rem; }
-.slide .zone { position: absolute; top: calc(22px + env(safe-area-inset-top)); left: 66px; padding: 5px 11px; border-radius: 20px;
+.slide .zone { z-index: 1; position: absolute; top: calc(22px + env(safe-area-inset-top)); left: 66px; padding: 5px 11px; border-radius: 20px;
   background: #0007; font-size: .8rem; pointer-events: none; }
 .slide.playing .label { opacity: 0; }
 
@@ -155,3 +166,13 @@ h1 { font-size: 2rem; margin-bottom: 10px; }
 .col-btn.on { border-color: #e9b949; background: #e9b9491f; }
 .col-btn.on b { color: #e9b949; }
 #card dl { grid-template-columns: auto 1fr; }
+
+.home-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.home-row .btn { font-size: .95rem; padding: 13px 8px; }
+.help h3 { font-size: 1.02rem; margin: 18px 0 6px; color: #e9b949; }
+.help p, .help li { font-size: .93rem; line-height: 1.5; }
+.help ul { padding-left: 20px; }
+.help li { margin-bottom: 5px; }
+.qr-box { background: #fff; color: #0b1a12; border-radius: 16px; padding: 14px; text-align: center; margin: 8px auto; max-width: 260px; }
+.qr-box svg.qr { width: 100%; height: auto; display: block; }
+.qr-box p { font-weight: 700; font-size: .85rem; margin-top: 6px; word-break: break-all; }
